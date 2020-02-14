@@ -4,6 +4,7 @@
 
 float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l);
 float * checkBorder(float vector[3]);
+float pi = 3.14159265358979323846;
 
 int main()
 {
@@ -85,7 +86,7 @@ int main()
 
 	//INIT Robot
 	int vl, vr;	
-	float xPos, yPos, l, t, r;		
+	float xPos, yPos, l, t, r, rotation;		
 	l = 20;
 	vl = vr = 0;
 
@@ -163,17 +164,24 @@ int main()
 
 		xPos = buffer[0];
 		yPos = buffer[1];
-		t = buffer[2];
 
-		float w = buffer[5];
+		if (t != buffer[2])
+		{
+			rotation = buffer[2] * (180 / pi);
+
+			robotLine.setRotation(rotation);
+
+			t = buffer[2];
+		}
 
 		icc.setPosition(buffer[3]+l, buffer[4]+l);
 
 		robot.setPosition(buffer[0], buffer[1]);
 		robotLine.setPosition(buffer[0]+l, buffer[1]+l);
 
-		//textPosXY.setString("Position X:" + std::to_string(xPos) + " Y:" + std::to_string(yPos) + " T:" + std::to_string(t));
-		textPosXY.setString(" Theta:" + std::to_string(t));
+		textPosXY.setString("Position X:" + std::to_string(xPos) + " Y:" + std::to_string(yPos) + " T:" + std::to_string(t));
+		//textPosXY.setString(" Theta:" + std::to_string(t));
+
 		menuVrText.setString("Vl");
 		menuVlText.setString("Vr");
 		menuVrTextSpeed.setString(std::to_string(vr) + "0%");
@@ -220,7 +228,6 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 
 		vector[3] = 0;
 		vector[4] = 0;
-		vector[5] = w;
 
 		return vector;
 	}
@@ -238,7 +245,6 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 
 		vector[3] = 0;
 		vector[4] = 0;
-		vector[5] = w;
 
 		return vector;
 	}
@@ -266,7 +272,6 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 	float* buffer = checkBorder(vector);
 	vector[0] = buffer[0];
 	vector[1] = buffer[1];
-	vector[5] = w;
 
 	return vector;
 }
