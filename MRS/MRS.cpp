@@ -16,13 +16,14 @@ int main()
 	if (!fontMedium.loadFromFile("res/fonts/Montserrat-Medium.ttf")) {}
 	if (!fontBold.loadFromFile("res/fonts/Montserrat-Bold.ttf")){}
 
-	//INIT Interface
+	//INIT ----------- Interface ---------------
 	sf::Text textPosXY;
 	textPosXY.setFont(fontMedium);
 	textPosXY.setCharacterSize(12);
 	textPosXY.setFillColor(sf::Color::White);
 	textPosXY.setPosition(780, 700);
 
+	// ----- MENU Lines -----
 	sf::RectangleShape menuLine1(sf::Vector2f(720, 2));
 	menuLine1.rotate(90);
 	menuLine1.setFillColor(sf::Color::Blue);
@@ -30,59 +31,84 @@ int main()
 
 	sf::RectangleShape menuLine2(sf::Vector2f(280, 2));
 	menuLine2.setFillColor(sf::Color::Blue);
-	menuLine2.setPosition(1000, 480);
+	menuLine2.setPosition(1000, 500);
 
 	sf::RectangleShape menuLine3(sf::Vector2f(280, 2));
 	menuLine3.setFillColor(sf::Color::Blue);
-	menuLine3.setPosition(1000, 240);
+	menuLine3.setPosition(1000, 250);
+
+	// ----- MENU Circle -----
+	sf::Text menuTextRotation;
+	menuTextRotation.setFont(fontMedium);
+	menuTextRotation.setCharacterSize(20);
+	menuTextRotation.setFillColor(sf::Color::Blue);
+	menuTextRotation.setPosition(1070, 475);
+
+	sf::CircleShape menuRobotCircle(70);
+	menuRobotCircle.setFillColor(sf::Color::Black);
+	menuRobotCircle.setPosition(1070, 300);
+	menuRobotCircle.setOutlineThickness(3);
+	menuRobotCircle.setOutlineColor(sf::Color::Blue);
+
+	sf::RectangleShape menuRobotCircleLine(sf::Vector2f(70, 4));
+	menuRobotCircleLine.setFillColor(sf::Color::Green);
+	menuRobotCircleLine.setPosition(1140, 370);
+
+	// ----- MENU Velocity -----
+
+	sf::Text menuTextVelocity;
+	menuTextVelocity.setFont(fontBold);
+	menuTextVelocity.setCharacterSize(25);
+	menuTextVelocity.setFillColor(sf::Color::Red);
+	menuTextVelocity.setPosition(1070, 520);
 
 	sf::RectangleShape menuVlBorder(sf::Vector2f(100, 50));
 	menuVlBorder.rotate(-90);
 	menuVlBorder.setFillColor(sf::Color::Black);
-	menuVlBorder.setPosition(1060, 680);
+	menuVlBorder.setPosition(1160, 680);
 	menuVlBorder.setOutlineThickness(3);
 	menuVlBorder.setOutlineColor(sf::Color::Blue);
 
 	sf::RectangleShape menuVl(sf::Vector2f(50, 50));
 	menuVl.rotate(-90);
 	menuVl.setFillColor(sf::Color::Green);
-	menuVl.setPosition(1060, 680);
+	menuVl.setPosition(1160, 680);
 
 	sf::RectangleShape menuVrBorder(sf::Vector2f(100, 50));
 	menuVrBorder.rotate(-90);
 	menuVrBorder.setFillColor(sf::Color::Black);
-	menuVrBorder.setPosition(1160, 680);
+	menuVrBorder.setPosition(1060, 680);
 	menuVrBorder.setOutlineThickness(3);
 	menuVrBorder.setOutlineColor(sf::Color::Blue);
 
 	sf::RectangleShape menuVr(sf::Vector2f(50, 50));
 	menuVr.rotate(-90);
 	menuVr.setFillColor(sf::Color::Green);
-	menuVr.setPosition(1160, 680);
+	menuVr.setPosition(1060, 680);
 
 	sf::Text menuVlText;
 	menuVlText.setFont(fontBold);
 	menuVlText.setCharacterSize(18);
 	menuVlText.setFillColor(sf::Color::Blue);
-	menuVlText.setPosition(1060, 555);
-
-	sf::Text menuVrText;
-	menuVrText.setFont(fontBold);
-	menuVrText.setCharacterSize(18);
-	menuVrText.setFillColor(sf::Color::Blue);
-	menuVrText.setPosition(1160, 555);
+	menuVlText.setPosition(1160, 555);
 
 	sf::Text menuVlTextSpeed;
 	menuVlTextSpeed.setFont(fontBold);
 	menuVlTextSpeed.setCharacterSize(20);
 	menuVlTextSpeed.setFillColor(sf::Color::Blue);
-	menuVlTextSpeed.setPosition(1060, 630);
+	menuVlTextSpeed.setPosition(1160, 630);
+
+	sf::Text menuVrText;
+	menuVrText.setFont(fontBold);
+	menuVrText.setCharacterSize(18);
+	menuVrText.setFillColor(sf::Color::Blue);
+	menuVrText.setPosition(1060, 555);
 
 	sf::Text menuVrTextSpeed;
 	menuVrTextSpeed.setFont(fontBold);
 	menuVrTextSpeed.setCharacterSize(20);
 	menuVrTextSpeed.setFillColor(sf::Color::Blue);
-	menuVrTextSpeed.setPosition(1160, 630);
+	menuVrTextSpeed.setPosition(1060, 630);
 
 	//INIT Robot
 	int vl, vr;	
@@ -90,7 +116,7 @@ int main()
 	l = 20;
 	vl = vr = 0;
 
-	t = 0; // THETA = 0;
+	t = rotation = 0; // THETA = 0;
 
 	sf::CircleShape robot(l);
 	robot.setFillColor(sf::Color::Green);
@@ -99,7 +125,7 @@ int main()
 	robotLine.setFillColor(sf::Color::Red);
 	robotLine.setPosition(l, l);
 
-	sf::RectangleShape icc(sf::Vector2f(2, 2));
+	sf::RectangleShape icc(sf::Vector2f(3, 3));
 	icc.setFillColor(sf::Color::Red);
 	icc.setPosition(0, 0);
 
@@ -170,6 +196,13 @@ int main()
 			rotation = buffer[2] * (180 / pi);
 
 			robotLine.setRotation(rotation);
+			menuRobotCircleLine.setRotation(rotation);
+
+			while(rotation > 360)
+				rotation = rotation - 360;
+
+			while (rotation < 0)
+				rotation = rotation + 360;
 
 			t = buffer[2];
 		}
@@ -179,19 +212,24 @@ int main()
 		robot.setPosition(buffer[0], buffer[1]);
 		robotLine.setPosition(buffer[0]+l, buffer[1]+l);
 
-		textPosXY.setString("Position X:" + std::to_string(xPos) + " Y:" + std::to_string(yPos) + " T:" + std::to_string(t));
-		//textPosXY.setString(" Theta:" + std::to_string(t));
+		textPosXY.setString("Position X:" + std::to_string((int)xPos) + " Y:" + std::to_string((int)yPos));
+		menuTextRotation.setString(" Theta:" + std::to_string((int)rotation) + "°");
 
+		menuTextVelocity.setString("Velocity");
 		menuVrText.setString("Vl");
 		menuVlText.setString("Vr");
-		menuVrTextSpeed.setString(std::to_string(vr) + "0%");
-		menuVlTextSpeed.setString(std::to_string(vl) + "0%");
+		menuVrTextSpeed.setString(std::to_string(vr*10) + "%");
+		menuVlTextSpeed.setString(std::to_string(vl*10) + "%");
 
 		window.clear();
 		window.draw(robot);
 		window.draw(robotLine);
 		window.draw(icc);
 		window.draw(textPosXY);
+		window.draw(menuRobotCircle);
+		window.draw(menuRobotCircleLine);
+		window.draw(menuTextRotation);
+		window.draw(menuTextVelocity);
 		window.draw(menuLine1);
 		window.draw(menuLine2);
 		window.draw(menuLine3);
@@ -231,7 +269,7 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 
 		return vector;
 	}
-	else if (vl == -vr)
+	else if (vl == -vr || -vl == vr)
 	{
 		r = 0;
 		w = t + (2 * vl * time) / l;
@@ -248,7 +286,7 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 
 		return vector;
 	}
-	else if (vl == 0 || vr == 0) 
+	else if (vr == 0 || vl == 0) 
 	{
 		r = l / 2;
 		w = (vr - vl) / l;
