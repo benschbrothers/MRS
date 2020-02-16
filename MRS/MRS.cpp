@@ -303,6 +303,7 @@ int main()
 	walls.emplace_back(50, 50, 50, 400);
 	walls.emplace_back(50, 400, 800, 400);
 	walls.emplace_back(800, 50, 800, 400);
+	walls.emplace_back(600, 300, 800, 400);
 
 	walls.emplace_back(100, 100, 200, 300);
 
