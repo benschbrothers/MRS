@@ -110,7 +110,7 @@ public:
 		else
 		{
 			float r, w;
-			if (vr == 0 || vl == 0)
+			if (vl == 0)
 			{
 				r = size / 2;
 				w = (vr - vl) / size;
