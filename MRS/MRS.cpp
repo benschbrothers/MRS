@@ -6,6 +6,61 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 float * checkBorder(float vector[3]);
 float pi = 3.14159265358979323846;
 
+struct Wall
+{
+	Wall(float px1, float py1, float px2, float py2)
+	{
+		x1 = px1;
+		y1 = py1;
+		x2 = px2;
+		y2 = py2;
+	}
+
+	float x1;
+	float y1;
+	float x2;
+	float y2;
+};
+
+struct Bot
+{
+	float x;
+	float y;
+	float dir;
+
+	float sensors[12];
+};
+
+// source : https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
+bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
+	float p2_x, float p2_y, float p3_x, float p3_y, float& i_x, float& i_y)
+{
+	float s1_x, s1_y, s2_x, s2_y;
+	s1_x = p1_x - p0_x;     s1_y = p1_y - p0_y;
+	s2_x = p3_x - p2_x;     s2_y = p3_y - p2_y;
+
+	float s, t;
+	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
+	t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
+
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+	{
+		// Collision detected
+		if (i_x != NULL)
+			i_x = p0_x + (t * s1_x);
+		if (i_y != NULL)
+			i_y = p0_y + (t * s1_y);
+		return true;
+	}
+
+	return false; // No collision
+}
+
+float getLength(float x1, float y1, float x2, float y2)
+{
+	return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
+
 int main()
 {
 	// INIT Fonts
@@ -110,6 +165,11 @@ int main()
 	menuVrTextSpeed.setFillColor(sf::Color::Blue);
 	menuVrTextSpeed.setPosition(1060, 630);
 
+	std::vector<Wall> walls;
+	walls.emplace_back(200,50,200,200);
+
+	Bot bot;
+
 	//INIT Robot
 	int vl, vr;	
 	float xPos, yPos, l, t, r, rotation;		
@@ -207,6 +267,10 @@ int main()
 			t = buffer[2];
 		}
 
+		bot.x = buffer[0] + l;
+		bot.y = buffer[1] + l;
+		bot.dir = buffer[2];
+
 		icc.setPosition(buffer[3]+l, buffer[4]+l);
 
 		robot.setPosition(buffer[0], buffer[1]);
@@ -241,6 +305,48 @@ int main()
 		window.draw(menuVlText);
 		window.draw(menuVrTextSpeed);
 		window.draw(menuVlTextSpeed);
+
+		for (const auto& wall : walls)
+		{
+			sf::VertexArray line(sf::Lines, 2);
+			line[0].position = sf::Vector2f(wall.x1, wall.y1);
+			line[0].color = sf::Color(100, 0, 200);
+			line[1].position = sf::Vector2f(wall.x2, wall.y2);
+			line[1].color = sf::Color(100, 0, 200);
+			window.draw(line);
+		}
+
+		for (int i = 0; i < 12; i++)
+		{
+			float xDir = cos(bot.dir + (i * 2 * pi / 12.0));
+			float yDir = sin(bot.dir + (i * 2 * pi / 12.0));
+
+			float length = 200;
+
+			for (const auto& wall : walls)
+			{
+				float px;
+				float py;
+				if (getLineIntersection(bot.x, bot.y, bot.x + xDir * length, bot.y + yDir * length, wall.x1, wall.y1, wall.x2, wall.y2, px, py))
+				{
+					float newLength = getLength(bot.x, bot.y, px, py);
+					if (newLength < length)
+					{
+						length = newLength;
+					}
+				}
+			}
+
+			bot.sensors[i] = length;
+
+			sf::VertexArray line(sf::Lines, 2);
+			line[0].position = sf::Vector2f(bot.x, bot.y);
+			line[0].color = sf::Color(0, 0, 255);
+			line[1].position = sf::Vector2f(bot.x + xDir * bot.sensors[i], bot.y + yDir * bot.sensors[i]);
+			line[1].color = sf::Color(0, 0, 255);
+			window.draw(line);
+		}
+
 		window.display();
 	}
 	return 0;
