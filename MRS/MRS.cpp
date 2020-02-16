@@ -6,6 +6,55 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 float * checkBorder(float vector[3]);
 float pi = 3.14159265358979323846;
 
+struct Point
+{
+	Point()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	Point(float px, float py)
+	{
+		x = px;
+		y = py;
+	}
+
+	Point(const Point& p1, const Point& p2)
+	{
+		x = p2.x - p1.x;
+		y = p2.y - p1.y;
+	}
+
+	float x;
+	float y;
+
+	Point operator+(const Point& other){return Point(x + other.x, y + other.y);}
+	Point operator-(const Point& other){return Point(x - other.x, y - other.y);}
+	Point operator*(const float other) { return Point(x * other, y * other); }
+	Point operator/(const float other) { return Point(x / other, y / other); }
+
+	float getLenght() const
+	{
+		return sqrt(x * x + y * y);
+	}
+
+	Point getPerpendicular() const
+	{
+		return Point(y, -x);
+	}
+
+	float dot(const Point& other) const
+	{
+		return x * other.x + y * other.y;
+	}
+
+	float getAngle(const Point& other) const
+	{
+		return acos(this->dot(other) / (this->getLenght() * other.getLenght()));
+	}
+};
+
 struct Wall
 {
 	Wall(float px1, float py1, float px2, float py2)
@@ -24,11 +73,67 @@ struct Wall
 
 struct Bot
 {
-	float x;
-	float y;
+public: 
+	float size;
+
+	Point pos;
 	float dir;
 
+	Point newPos;
+	float newDir;
+
+	bool printTurnPoint = false;
+	Point turnPoint;
+
 	float sensors[12];
+
+	void calcnewPosition(int vl, int vr)
+	{
+		float time = 0.01;
+
+		if (vl == vr)
+		{
+			newPos.x = pos.x + vl * cos(dir) * time;
+			newPos.y = pos.y + vl * sin(dir) * time;
+			newDir = dir;
+
+			printTurnPoint = false;
+		}
+		else if (vl == -vr || -vl == vr)
+		{
+			newPos.x = pos.x;
+			newPos.y = pos.y;
+			newDir = dir + (2 * vl * time) / size;
+
+			printTurnPoint = false;
+		}
+		else
+		{
+			float r, w;
+			if (vr == 0 || vl == 0)
+			{
+				r = size / 2;
+				w = (vr - vl) / size;
+			}
+			else
+			{
+				r = (size / 2) * ((vl + vr) / (vr - vl));
+				w = (vr - vl) / size;
+			}
+
+			float iCCx = pos.x - (r * sin(dir));
+			float iCCy = pos.y + (r * cos(dir));
+
+			turnPoint.x = iCCx;
+			turnPoint.y = iCCy;
+
+			newPos.x = ((cos(w * time) * (pos.x - iCCx)) + (-sin(w * time) * (pos.y - iCCy))) + iCCx;
+			newPos.y = ((sin(w * time) * (pos.x - iCCx)) + (cos(w * time) * (pos.y - iCCy))) + iCCy;
+			newDir = dir + w * time;
+
+			printTurnPoint = true;
+		}
+	}
 };
 
 // source : https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
@@ -43,13 +148,11 @@ bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
 	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
 	t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
 
-	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
+	if (s >= -0.1 && s <= 1.1 && t >= -0.1 && t <= 1.1)
 	{
 		// Collision detected
-		if (i_x != NULL)
-			i_x = p0_x + (t * s1_x);
-		if (i_y != NULL)
-			i_y = p0_y + (t * s1_y);
+		i_x = p0_x + (t * s1_x);
+		i_y = p0_y + (t * s1_y);
 		return true;
 	}
 
@@ -59,6 +162,36 @@ bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
 float getLength(float x1, float y1, float x2, float y2)
 {
 	return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
+}
+
+float test(sf::RenderWindow* window, Point circle, float size, Point circleVel, Point p1, Point p2)
+{
+	Point lineDir = p2 - p1;
+	Point perpendicular = lineDir.getPerpendicular();
+	float angle = circleVel.getAngle(perpendicular);
+
+	float l = perpendicular.getLenght();
+	perpendicular = perpendicular * size / l;
+
+	if (pi / 2 < angle && angle < 3 * pi / 2)
+	{
+		perpendicular = perpendicular * -1;
+	}
+
+	Point firstHitOnEdge = circle + perpendicular;
+	Point moveTill = firstHitOnEdge + circleVel;
+	Point intersection;
+
+	// hitting middle of the line
+	if (getLineIntersection(p1.x, p1.y, p2.x, p2.y, firstHitOnEdge.x, firstHitOnEdge.y, moveTill.x, moveTill.y, intersection.x, intersection.y))
+	{
+		return (firstHitOnEdge - intersection).getLenght();
+	}
+
+	// hitting ends of the line
+	// TODO
+
+	return circleVel.getLenght();
 }
 
 int main()
@@ -166,24 +299,29 @@ int main()
 	menuVrTextSpeed.setPosition(1060, 630);
 
 	std::vector<Wall> walls;
-	walls.emplace_back(200,50,200,200);
+	walls.emplace_back(50,50,800,50);
+	walls.emplace_back(50, 50, 50, 400);
+	walls.emplace_back(50, 400, 800, 400);
+	walls.emplace_back(800, 50, 800, 400);
+
+	walls.emplace_back(100, 100, 200, 300);
 
 	Bot bot;
+	bot.pos.x = 500;
+	bot.pos.y = 300;
+	bot.dir = 0;
+	bot.size = 20;
 
 	//INIT Robot
-	int vl, vr;	
-	float xPos, yPos, l, t, r, rotation;		
-	l = 20;
+	int vl, vr;		
 	vl = vr = 0;
 
-	t = rotation = 0; // THETA = 0;
-
-	sf::CircleShape robot(l);
+	sf::CircleShape robot(bot.size);
 	robot.setFillColor(sf::Color::Green);
 
-	sf::RectangleShape robotLine(sf::Vector2f(l, 2));
+	sf::RectangleShape robotLine(sf::Vector2f(bot.size, 2));
 	robotLine.setFillColor(sf::Color::Red);
-	robotLine.setPosition(l, l);
+	robotLine.setPosition(bot.size, bot.size);
 
 	sf::RectangleShape icc(sf::Vector2f(3, 3));
 	icc.setFillColor(sf::Color::Red);
@@ -240,44 +378,77 @@ int main()
 				window.close();
 		}
 
+		window.clear();
+
 		menuVl.setSize(sf::Vector2f(50 + vl * 5, 50));
 		menuVr.setSize(sf::Vector2f(50 + vr * 5, 50));
-		
-		xPos = robot.getPosition().x;
-		yPos = robot.getPosition().y;
 
-		float* buffer = forwardKinematics(vl, vr, xPos, yPos, t, l);
+		bot.calcnewPosition(vl, vr);
 
-		xPos = buffer[0];
-		yPos = buffer[1];
+		Point vel = bot.newPos - bot.pos;
+		float speed = vel.getLenght();
+		float maxMovement = speed;
+		int maxTries = 3;
 
-		if (t != buffer[2])
+		while(maxTries > 0)
 		{
-			rotation = buffer[2] * (180 / pi);
+			maxTries--; 
 
-			robotLine.setRotation(rotation);
-			menuRobotCircleLine.setRotation(rotation);
+			bool hit = false;
+			int wallIndex;
+			for (int i = 0; i < walls.size(); i++)
+			{
+				float distance = test(&window, bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), Point(walls[i].x2, walls[i].y2));
+				if (distance < maxMovement)
+				{
+					hit = true;
+					maxMovement = distance;
+					wallIndex = i;
+				}
+			}
 
-			while(rotation > 360)
-				rotation = rotation - 360;
+			if (hit)
+			{
+				maxMovement -= 0.01;
+				if (maxMovement <= 0)
+				{
+					maxMovement = 0;
+				}
 
-			while (rotation < 0)
-				rotation = rotation + 360;
+				bot.pos = bot.pos + (vel * maxMovement / speed);
 
-			t = buffer[2];
+				vel = vel - (vel * maxMovement / speed);
+
+				// project speed
+				Point line(Point(walls[wallIndex].x1, walls[wallIndex].y1), Point(walls[wallIndex].x2, walls[wallIndex].y2));
+				float lineLenght = line.getLenght();
+				float comp = vel.dot(line) / (lineLenght * lineLenght);
+				vel = line * comp;
+
+				speed = vel.getLenght();
+				maxMovement = speed;
+
+				if (speed <= 0)
+				{
+					break;
+				}
+			}
+			else
+			{
+				bot.pos = bot.pos + vel;
+				break;
+			}
 		}
+		bot.dir = bot.newDir;
 
-		bot.x = buffer[0] + l;
-		bot.y = buffer[1] + l;
-		bot.dir = buffer[2];
-
-		icc.setPosition(buffer[3]+l, buffer[4]+l);
-
-		robot.setPosition(buffer[0], buffer[1]);
-		robotLine.setPosition(buffer[0]+l, buffer[1]+l);
-
-		textPosXY.setString("Position X:" + std::to_string((int)xPos) + " Y:" + std::to_string((int)yPos));
-		menuTextRotation.setString(" Theta:" + std::to_string((int)rotation) + "°");
+		robot.setPosition(bot.pos.x - bot.size, bot.pos.y - bot.size);
+		robotLine.setRotation(bot.dir * (180 / pi));
+		robotLine.setPosition(bot.pos.x, bot.pos.y);
+		menuRobotCircleLine.setRotation(bot.dir * (180 / pi));
+		icc.setPosition(bot.turnPoint.x, bot.turnPoint.y);
+	
+		//textPosXY.setString("Position X:" + std::to_string((int)xPos) + " Y:" + std::to_string((int)yPos));
+		//menuTextRotation.setString(" Theta:" + std::to_string((int)rotation) + "°");
 
 		menuTextVelocity.setString("Velocity");
 		menuVrText.setString("Vl");
@@ -285,10 +456,9 @@ int main()
 		menuVrTextSpeed.setString(std::to_string(vr*10) + "%");
 		menuVlTextSpeed.setString(std::to_string(vl*10) + "%");
 
-		window.clear();
 		window.draw(robot);
 		window.draw(robotLine);
-		window.draw(icc);
+		if(bot.printTurnPoint) window.draw(icc);
 		window.draw(textPosXY);
 		window.draw(menuRobotCircle);
 		window.draw(menuRobotCircleLine);
@@ -327,22 +497,22 @@ int main()
 			{
 				float px;
 				float py;
-				if (getLineIntersection(bot.x, bot.y, bot.x + xDir * length, bot.y + yDir * length, wall.x1, wall.y1, wall.x2, wall.y2, px, py))
+				if (getLineIntersection(bot.pos.x, bot.pos.y, bot.pos.x + xDir * length, bot.pos.y + yDir * length, wall.x1, wall.y1, wall.x2, wall.y2, px, py))
 				{
-					float newLength = getLength(bot.x, bot.y, px, py);
+					float newLength = getLength(bot.pos.x, bot.pos.y, px, py);
 					if (newLength < length)
 					{
 						length = newLength;
 					}
 				}
 			}
-
+			
 			bot.sensors[i] = length;
 
 			sf::VertexArray line(sf::Lines, 2);
-			line[0].position = sf::Vector2f(bot.x, bot.y);
+			line[0].position = sf::Vector2f(bot.pos.x, bot.pos.y);
 			line[0].color = sf::Color(0, 0, 255);
-			line[1].position = sf::Vector2f(bot.x + xDir * bot.sensors[i], bot.y + yDir * bot.sensors[i]);
+			line[1].position = sf::Vector2f(bot.pos.x + xDir * bot.sensors[i], bot.pos.y + yDir * bot.sensors[i]);
 			line[1].color = sf::Color(0, 0, 255);
 			window.draw(line);
 		}
@@ -350,92 +520,4 @@ int main()
 		window.display();
 	}
 	return 0;
-}
-
-float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l)
-{
-	float vector[6], r, w, time;
-
-	time = 0.01;
-
-	if (vl == vr)
-	{
-		r = 999999;
-		w = 0;
-
-		vector[0] = xPos + vl * cos(t) * time;
-		vector[1] = yPos + vl * sin(t) * time;
-		vector[2] = t;
-		float* buffer = checkBorder(vector);
-		vector[0] = buffer[0];
-		vector[1] = buffer[1];
-
-		vector[3] = 0;
-		vector[4] = 0;
-
-		return vector;
-	}
-	else if (vl == -vr || -vl == vr)
-	{
-		r = 0;
-		w = t + (2 * vl * time) / l;
-
-		vector[0] = xPos;
-		vector[1] = yPos;
-		vector[2] = t + (2*vl*time)/l;
-		float* buffer = checkBorder(vector);
-		vector[0] = buffer[0];
-		vector[1] = buffer[1];
-
-		vector[3] = 0;
-		vector[4] = 0;
-
-		return vector;
-	}
-	else if (vr == 0 || vl == 0) 
-	{
-		r = l / 2;
-		w = (vr - vl) / l;
-	}
-	else
-	{
-		r = (l / 2) * ((vl + vr) / (vr - vl));
-		w = (vr - vl) / l;
-	}
-
-	float iCCx = xPos - (r * sin(t));
-	float iCCy = yPos + (r * cos(t));
-
-	vector[3] = iCCx;
-	vector[4] = iCCy;
-
-	vector[0] = ((cos(w * time) * (xPos - iCCx)) + (-sin(w * time) * (yPos - iCCy))) + iCCx;
-	vector[1] = ((sin(w * time) * (xPos - iCCx)) + (cos(w * time) * (yPos - iCCy))) + iCCy;
-	vector[2] = t + w * time;
-
-	float* buffer = checkBorder(vector);
-	vector[0] = buffer[0];
-	vector[1] = buffer[1];
-
-	return vector;
-}
-
-float* checkBorder(float vector[3]) 
-{
-	//Check Screen Borders
-	if (vector[0] <= 0)
-		vector[0] = 0;
-
-	if (vector[0] >= 1000)
-		vector[0] = 1000;
-
-	if (vector[1] <= 0)
-		vector[1] = 0;
-
-	if (vector[1] >= 700)
-		vector[1] = 700;
-
-	float* result = vector;
-
-	return result;
 }
