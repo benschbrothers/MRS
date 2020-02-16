@@ -2,8 +2,7 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 
-float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l);
-float * checkBorder(float vector[3]);
+
 float pi = 3.14159265358979323846;
 
 struct Wall
@@ -30,6 +29,9 @@ struct Bot
 
 	float sensors[12];
 };
+
+float* forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l, Bot bot);
+float* checkBorder(float vector[3], Bot bot, float xPos, float yPos);
 
 // source : https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
 bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
@@ -76,7 +78,7 @@ int main()
 	textPosXY.setFont(fontMedium);
 	textPosXY.setCharacterSize(12);
 	textPosXY.setFillColor(sf::Color::White);
-	textPosXY.setPosition(780, 700);
+	textPosXY.setPosition(850, 690);
 
 	// ----- MENU Lines -----
 	sf::RectangleShape menuLine1(sf::Vector2f(720, 2));
@@ -167,8 +169,10 @@ int main()
 
 	std::vector<Wall> walls;
 	walls.emplace_back(200,50,200,200);
-
-	Bot bot;
+	walls.emplace_back(10, 10, 990, 10);
+	walls.emplace_back(10, 10, 10, 710);
+	walls.emplace_back(990, 10, 990, 710);
+	walls.emplace_back(10, 710, 990, 710);
 
 	//INIT Robot
 	int vl, vr;	
@@ -178,8 +182,14 @@ int main()
 
 	t = rotation = 0; // THETA = 0;
 
+	Bot bot;
+	bot.x = l;
+	bot.y = l;
+	bot.dir = t;
+
 	sf::CircleShape robot(l);
 	robot.setFillColor(sf::Color::Green);
+	robot.setPosition(l, l);
 
 	sf::RectangleShape robotLine(sf::Vector2f(l, 2));
 	robotLine.setFillColor(sf::Color::Red);
@@ -187,32 +197,33 @@ int main()
 
 	sf::RectangleShape icc(sf::Vector2f(3, 3));
 	icc.setFillColor(sf::Color::Red);
-	icc.setPosition(0, 0);
+	icc.setPosition(l, l);
 
 	while (window.isOpen())
 	{
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+			//inverted !? o/l and w/s
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
 			{
 				if (vl < 10)
 					vl++;
 			}
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
 			{
 				if (vl > -10)
 					vl--;
 			}
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::O))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
 			{
 				if (vr < 10)
 					vr++;
 			}
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
 			{
 				if (vr > -10)
 					vr--;
@@ -235,6 +246,14 @@ int main()
 				if (vr > -10)
 					vr--;
 			}
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::X))
+			{
+				vl = vr = t = rotation = 0;
+				robot.setPosition(l, l);
+				robotLine.setRotation(0);
+				menuRobotCircleLine.setRotation(0);
+			}
 			
 			if (event.type == sf::Event::Closed)
 				window.close();
@@ -243,13 +262,13 @@ int main()
 		menuVl.setSize(sf::Vector2f(50 + vl * 5, 50));
 		menuVr.setSize(sf::Vector2f(50 + vr * 5, 50));
 		
-		xPos = robot.getPosition().x;
-		yPos = robot.getPosition().y;
+		xPos = robot.getPosition().x + l;
+		yPos = robot.getPosition().y + l;
 
-		float* buffer = forwardKinematics(vl, vr, xPos, yPos, t, l);
+		float* buffer = forwardKinematics(vl, vr, xPos, yPos, t, l, bot);
 
-		xPos = buffer[0];
-		yPos = buffer[1];
+		xPos = buffer[0] -l;
+		yPos = buffer[1] -l;
 
 		if (t != buffer[2])
 		{
@@ -267,14 +286,14 @@ int main()
 			t = buffer[2];
 		}
 
-		bot.x = buffer[0] + l;
-		bot.y = buffer[1] + l;
+		bot.x = buffer[0] ;
+		bot.y = buffer[1] ;
 		bot.dir = buffer[2];
 
-		icc.setPosition(buffer[3]+l, buffer[4]+l);
+		icc.setPosition(buffer[3], buffer[4]);
 
-		robot.setPosition(buffer[0], buffer[1]);
-		robotLine.setPosition(buffer[0]+l, buffer[1]+l);
+		robot.setPosition(buffer[0] -l, buffer[1] -l);
+		robotLine.setPosition(buffer[0], buffer[1]);
 
 		textPosXY.setString("Position X:" + std::to_string((int)xPos) + " Y:" + std::to_string((int)yPos));
 		menuTextRotation.setString(" Theta:" + std::to_string((int)rotation) + "°");
@@ -352,7 +371,7 @@ int main()
 	return 0;
 }
 
-float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l)
+float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l, Bot bot)
 {
 	float vector[6], r, w, time;
 
@@ -366,7 +385,7 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 		vector[0] = xPos + vl * cos(t) * time;
 		vector[1] = yPos + vl * sin(t) * time;
 		vector[2] = t;
-		float* buffer = checkBorder(vector);
+		float* buffer = checkBorder(vector, bot, xPos, yPos);
 		vector[0] = buffer[0];
 		vector[1] = buffer[1];
 
@@ -383,7 +402,7 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 		vector[0] = xPos;
 		vector[1] = yPos;
 		vector[2] = t + (2*vl*time)/l;
-		float* buffer = checkBorder(vector);
+		float* buffer = checkBorder(vector, bot, xPos, yPos);
 		vector[0] = buffer[0];
 		vector[1] = buffer[1];
 
@@ -392,7 +411,7 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 
 		return vector;
 	}
-	else if (vr == 0 || vl == 0) 
+	else if (vl == 0 ) 
 	{
 		r = l / 2;
 		w = (vr - vl) / l;
@@ -409,28 +428,29 @@ float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float
 	vector[3] = iCCx;
 	vector[4] = iCCy;
 
-	vector[0] = ((cos(w * time) * (xPos - iCCx)) + (-sin(w * time) * (yPos - iCCy))) + iCCx;
+	vector[0] = ((cos(w * time) * (xPos - iCCx)) + (-1* (sin(w * time) * (yPos - iCCy)))) + iCCx;
 	vector[1] = ((sin(w * time) * (xPos - iCCx)) + (cos(w * time) * (yPos - iCCy))) + iCCy;
 	vector[2] = t + w * time;
 
-	float* buffer = checkBorder(vector);
+	float* buffer = checkBorder(vector, bot, xPos, yPos);
 	vector[0] = buffer[0];
 	vector[1] = buffer[1];
 
 	return vector;
 }
 
-float* checkBorder(float vector[3]) 
+float* checkBorder(float vector[3], Bot bot, float xPos, float yPos)
 {
+
 	//Check Screen Borders
-	if (vector[0] <= 0)
-		vector[0] = 0;
+	if (vector[0] <= -20)
+		vector[0] = -20;
 
 	if (vector[0] >= 1000)
 		vector[0] = 1000;
 
-	if (vector[1] <= 0)
-		vector[1] = 0;
+	if (vector[1] <= -20)
+		vector[1] = -20;
 
 	if (vector[1] >= 700)
 		vector[1] = 700;
