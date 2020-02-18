@@ -510,6 +510,15 @@ int main()
 			
 			bot.sensors[i] = length;
 
+			sf::Text sensorData;
+			sensorData.setFont(fontBold);
+			sensorData.setCharacterSize(10);
+			sensorData.setFillColor(sf::Color::Blue);
+			sensorData.setPosition((bot.pos.x - 10) + xDir * 30, (bot.pos.y -10) + yDir * 30);
+			sensorData.setString(std::to_string((int)bot.sensors[i]));
+			window.draw(sensorData);
+
+
 			sf::VertexArray line(sf::Lines, 2);
 			line[0].position = sf::Vector2f(bot.pos.x, bot.pos.y);
 			line[0].color = sf::Color(0, 0, 255);
