@@ -148,7 +148,7 @@ bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
 	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
 	t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
 
-	if (s >= -0.1 && s <= 1.1 && t >= -0.1 && t <= 1.1)
+	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
 	{
 		// Collision detected
 		i_x = p0_x + (t * s1_x);
@@ -159,12 +159,17 @@ bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
 	return false; // No collision
 }
 
+bool getLineIntersection(Point p1, Point p2, Point p3, Point p4, Point& i)
+{
+	return getLineIntersection(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, i.x, i.y);
+}
+
 float getLength(float x1, float y1, float x2, float y2)
 {
 	return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 }
 
-float test(sf::RenderWindow* window, Point circle, float size, Point circleVel, Point p1, Point p2)
+float botWallHit(Point circle, float size, Point circleVel, Point p1, Point p2)
 {
 	Point lineDir = p2 - p1;
 	Point perpendicular = lineDir.getPerpendicular();
@@ -178,20 +183,38 @@ float test(sf::RenderWindow* window, Point circle, float size, Point circleVel, 
 		perpendicular = perpendicular * -1;
 	}
 
+	Point velBig = circleVel * 100 / circleVel.getLenght();
 	Point firstHitOnEdge = circle + perpendicular;
-	Point moveTill = firstHitOnEdge + circleVel;
+	Point moveTill = firstHitOnEdge + velBig;
 	Point intersection;
 
 	// hitting middle of the line
-	if (getLineIntersection(p1.x, p1.y, p2.x, p2.y, firstHitOnEdge.x, firstHitOnEdge.y, moveTill.x, moveTill.y, intersection.x, intersection.y))
+	if (getLineIntersection(p1, p2, firstHitOnEdge, moveTill, intersection))
 	{
 		return (firstHitOnEdge - intersection).getLenght();
 	}
 
-	// hitting ends of the line
-	// TODO
+	return 1000;
+}
 
-	return circleVel.getLenght();
+float botPointHit(Point circle, float size, Point circleVel, Point p1, Point& hitDir)
+{
+	Point velUnit = circleVel / circleVel.getLenght();
+	Point velPerpendicular = velUnit.getPerpendicular();
+
+	Point intersection;
+	if (getLineIntersection(circle + (velPerpendicular * size), circle - (velPerpendicular * size), p1, p1 - (velUnit * 100), intersection))
+	{
+		float x = Point(circle, intersection).getLenght() / size;
+		float y = std::sqrt(1 - x*x) * size;
+
+		Point firstHit = intersection + velUnit * y;
+		hitDir = Point(circle, firstHit);
+
+		return Point(firstHit, p1).getLenght();
+	}
+
+	return 1000;
 }
 
 int main()
@@ -306,6 +329,7 @@ int main()
 	walls.emplace_back(600, 300, 800, 400);
 
 	walls.emplace_back(100, 100, 200, 300);
+	walls.emplace_back(200, 300, 300, 350);
 
 	Bot bot;
 	bot.pos.x = 500;
@@ -388,46 +412,83 @@ int main()
 
 		Point vel = bot.newPos - bot.pos;
 		float speed = vel.getLenght();
-		float maxMovement = speed;
-		int maxTries = 3;
+		int maxTries = 2;
 
 		while(maxTries > 0)
 		{
 			maxTries--; 
 
-			bool hit = false;
+			bool hitType = 0;
+			float maxMovement = 2000;
+			Point hitDir;
 			int wallIndex;
 			for (int i = 0; i < walls.size(); i++)
 			{
-				float distance = test(&window, bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), Point(walls[i].x2, walls[i].y2));
+				float distance = botWallHit(bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), Point(walls[i].x2, walls[i].y2));
 				if (distance < maxMovement)
 				{
-					hit = true;
+					hitType = 0;
+					maxMovement = distance;
+					wallIndex = i;
+				}
+
+				Point localhitDir;
+				distance = botPointHit(bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), localhitDir);
+				if (distance < maxMovement)
+				{
+					hitDir = localhitDir;
+					hitType = 1;
+					maxMovement = distance;
+					wallIndex = i;
+				}
+
+				distance = botPointHit(bot.pos, bot.size, vel, Point(walls[i].x2, walls[i].y2), localhitDir);
+				if (distance < maxMovement)
+				{
+					hitDir = localhitDir;
+					hitType = 2;
 					maxMovement = distance;
 					wallIndex = i;
 				}
 			}
 
-			if (hit)
+			maxMovement -= 1;
+			if (maxMovement <= 0)
 			{
-				maxMovement -= 0.01;
-				if (maxMovement <= 0)
-				{
-					maxMovement = 0;
-				}
+				maxMovement = 0;
+			}
 
+			if (maxMovement < speed)
+			{
 				bot.pos = bot.pos + (vel * maxMovement / speed);
-
 				vel = vel - (vel * maxMovement / speed);
 
-				// project speed
-				Point line(Point(walls[wallIndex].x1, walls[wallIndex].y1), Point(walls[wallIndex].x2, walls[wallIndex].y2));
-				float lineLenght = line.getLenght();
-				float comp = vel.dot(line) / (lineLenght * lineLenght);
-				vel = line * comp;
+				if (hitType == 0)
+				{
+					// project speed
+					Point line(Point(walls[wallIndex].x1, walls[wallIndex].y1), Point(walls[wallIndex].x2, walls[wallIndex].y2));
+					float lineLenght = line.getLenght();
+					float comp = vel.dot(line) / (lineLenght * lineLenght);
+					vel = line * comp;
 
-				speed = vel.getLenght();
-				maxMovement = speed;
+					speed = vel.getLenght();
+					maxMovement = speed;
+				}
+				else if (hitType == 1 || hitType == 2)
+				{
+					Point hitPerpendicular = hitDir.getPerpendicular() / hitDir.getLenght();
+
+					// project speed
+					float comp = vel.dot(hitPerpendicular);
+					vel = hitPerpendicular * comp;
+
+					speed = vel.getLenght();
+					maxMovement = speed;
+				}
+				else
+				{
+					break;
+				}
 
 				if (speed <= 0)
 				{
@@ -510,7 +571,7 @@ int main()
 			
 			bot.sensors[i] = length;
 
-			sf::Text sensorData;
+			/*sf::Text sensorData;
 			sensorData.setFont(fontBold);
 			sensorData.setCharacterSize(10);
 			sensorData.setFillColor(sf::Color::Blue);
@@ -524,7 +585,7 @@ int main()
 			line[0].color = sf::Color(0, 0, 255);
 			line[1].position = sf::Vector2f(bot.pos.x + xDir * bot.sensors[i], bot.pos.y + yDir * bot.sensors[i]);
 			line[1].color = sf::Color(0, 0, 255);
-			window.draw(line);
+			window.draw(line);*/
 		}
 
 		window.display();
