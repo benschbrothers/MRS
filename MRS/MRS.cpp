@@ -1,6 +1,7 @@
 #include <math.h>       
 #include <iostream>
 #include <SFML/Graphics.hpp>
+#include "GeneticSearch.h"
 
 float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l);
 float * checkBorder(float vector[3]);

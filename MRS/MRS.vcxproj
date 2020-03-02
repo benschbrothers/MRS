@@ -159,6 +159,9 @@
   <ItemGroup>
     <ClCompile Include="MRS.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GeneticSearch.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
