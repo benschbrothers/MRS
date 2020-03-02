@@ -144,7 +144,7 @@ private:
 		static std::bernoulli_distribution bernoulli(mutationRate);
 		static std::uniform_real_distribution<double> uniform(lowerBound, upperBound);
 
-		for (auto v : individual)
+		for (auto& v : individual)
 		{
 			if (bernoulli(gen))
 			{

@@ -229,7 +229,7 @@ float rosenbrock(float xi, float yi)
 	float right = y - x * x;
 	float result = left * left + 100 * right * right;
 
-	return result * -1;
+	return result;
 }
 
 float rastrigin(float xi, float yi) 
@@ -243,7 +243,7 @@ float rastrigin(float xi, float yi)
 	float xsum = x * x - 10 * cos(2 * pi * x);
 	float ysum = y * y - 10 * cos(2 * pi * y);
 
-	return (left + xsum + ysum) * -1;
+	return (left + xsum + ysum);
 }
 
 int main()
@@ -253,28 +253,38 @@ int main()
 	// typedef std::vector<Individual> Population;
 
 	GeneticSearch ga(2, 50, 100); // Number of variables, number of generations, population size
-	ga.mutationRate = 0.1;
-	ga.lowerBound = -1; // Lower and upper bound of variables in initial population generation and mutations
-	ga.upperBound = 1;
-	ga.elitism = 0.05;
+	ga.mutationRate = 0.2;
+	ga.lowerBound = -2; // Lower and upper bound of variables in initial population generation and mutations
+	ga.upperBound = 2;
+	ga.elitism = 0.02;
 	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
 	ga.setFitnessFunction([](const Individual& i)
 	{
 		// The GA maximizes, add a negative here if we want to minimize
-		return rosenbrock(i[0], i[1]);
+		return -rosenbrock(i[0], i[1]);
 	});
 
 	// This function is not necessary, should do nothing, just usefull for intermediary updates, it gets called every time a new population is made.
 	ga.setUpdateCallback([](const Population& pop) 
 	{
-
+		double lowest = 999;
+		Individual best;
+		for (const auto& i : pop)
+		{
+			if (rosenbrock(i[0], i[1]) < lowest)
+			{
+				lowest = rosenbrock(i[0], i[1]);
+				best = i;
+			}
+		}
+		std::cout << rosenbrock(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
 	});
 
 	ga.run();
 
 	Individual best = ga.getBest();
-	std::cout << rosenbrock(best[0], best[1]);
+	std::cout << rosenbrock(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
 	std::cin.get();
 
 	return 0;
