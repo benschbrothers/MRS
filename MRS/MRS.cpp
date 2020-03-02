@@ -218,6 +218,34 @@ float botPointHit(Point circle, float size, Point circleVel, Point p1, Point& hi
 	return 1000;
 }
 
+float rosenbrock(float xi, float yi)
+{
+	float x = xi;
+	float y = yi;
+	float b = 100;
+	float a = 1;
+
+	float left = a - x;
+	float right = y - x * x;
+	float result = left * left + 100 * right * right;
+
+	return result * -1;
+}
+
+float rastrigin(float xi, float yi) 
+{
+	float x = xi;
+	float y = yi;
+	float n = 2;
+
+	float left = 10 * n;
+
+	float xsum = x * x - 10 * cos(2 * pi * x);
+	float ysum = y * y - 10 * cos(2 * pi * y);
+
+	return (left + xsum + ysum) * -1;
+}
+
 int main()
 {
 	// INIT Fonts
