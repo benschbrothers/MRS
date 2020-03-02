@@ -32,6 +32,10 @@ public:
 	{
 		fitnessFunction = pFitnessFunction;
 	}
+	void setUpdateCallback(std::function<void(const Population&)> pUpdateCallback)
+	{
+		updateCallback = pUpdateCallback;
+	}
 
 	void run()
 	{
@@ -44,6 +48,11 @@ public:
 		for (int i = 0; i < populationSize; i++)
 		{
 			population.emplace_back(newIndividual());
+		}
+
+		if (updateCallback)
+		{
+			updateCallback(population);
 		}
 
 		// Run generations
@@ -68,8 +77,24 @@ public:
 			}
 
 			population = newPopulation;
+
+			if (updateCallback)
+			{
+				updateCallback(population);
+			}
 		}
 	}
+
+	Individual getBest()
+	{
+		return best;
+	}
+
+	double mutationRate = 0.1;
+	double lowerBound = -1;
+	double upperBound = 1;
+	double elitism = 0.05;
+	double top = 0.25;
 
 private:
 	std::vector<double> getFitness(const Population& population)
@@ -137,21 +162,17 @@ private:
 		{
 			individual.push_back(uniform(gen));
 		}
+
+		return individual;
 	}
 
 private:
-
 	int parameters;
 	int generations;
 	int populationSize;
 
-	double mutationRate = 0.1;
-	double lowerBound = -1;
-	double upperBound = 1;
-	double elitism = 0.05;
-	double top = 0.25;
-
 	std::function<double(const Individual&)> fitnessFunction;
+	std::function<void(const Population&)> updateCallback;
 
 	Individual best;
 };

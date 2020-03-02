@@ -248,6 +248,37 @@ float rastrigin(float xi, float yi)
 
 int main()
 {
+	// NOTE:
+	// typedef std::vector<double> Individual;
+	// typedef std::vector<Individual> Population;
+
+	GeneticSearch ga(2, 50, 100); // Number of variables, number of generations, population size
+	ga.mutationRate = 0.1;
+	ga.lowerBound = -1; // Lower and upper bound of variables in initial population generation and mutations
+	ga.upperBound = 1;
+	ga.elitism = 0.05;
+	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
+
+	ga.setFitnessFunction([](const Individual& i)
+	{
+		// The GA maximizes, add a negative here if we want to minimize
+		return rosenbrock(i[0], i[1]);
+	});
+
+	// This function is not necessary, should do nothing, just usefull for intermediary updates, it gets called every time a new population is made.
+	ga.setUpdateCallback([](const Population& pop) 
+	{
+
+	});
+
+	ga.run();
+
+	Individual best = ga.getBest();
+	std::cout << rosenbrock(best[0], best[1]);
+	std::cin.get();
+
+	return 0;
+
 	// INIT Fonts
 	sf::RenderWindow window(sf::VideoMode(1280, 720), "Mobile Robot Simulator: Group 3");
 	sf::Font fontThin, fontMedium, fontBold;
