@@ -83,6 +83,11 @@ public:
 				updateCallback(population);
 			}
 		}
+
+		std::vector<double> fitness = getFitness(population);
+		std::vector<int> fitnessOrder = argSortDesc(fitness);
+
+		best = population[fitnessOrder[0]];
 	}
 
 	Individual getBest()
