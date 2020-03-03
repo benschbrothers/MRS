@@ -1,5 +1,7 @@
 #include <math.h>       
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include <SFML/Graphics.hpp>
 #include "GeneticSearch.h"
 
@@ -246,7 +248,7 @@ float rastrigin(float xi, float yi)
 	return (left + xsum + ysum);
 }
 
-void Plot(int min, int max, bool RastriOrRose)
+void Plot(double min, double max, std::function<float(float,float)> func)
 {
 	sf::RenderWindow window(sf::VideoMode(1000, 1000), "Mobile Robot Simulator : Group 3 - Plotter");
 	sf::Font fontMedium;
@@ -261,19 +263,16 @@ void Plot(int min, int max, bool RastriOrRose)
 	spriteHeatmap.setPosition(sf::Vector2f(20.f, 20.f));
 
 	// 800x800 Heatmap
-	sf::Uint8* pixels = new sf::Uint8[max * max * 4];
+	sf::Uint8* pixels = new sf::Uint8[800 * 800 * 4];
 
 	//Get min / max values for rosenbrock / rastrigin to create color range for the heatmap
-	int curmax = -999999999;
-	int curmin = 999999999;
-	for (int x = min; x < max; x++) {
-		for (int y = min; y < max; y++)
+	float curmax = -999999999;
+	float curmin = 999999999;
+	float stepSize = (max - min) / 800.0;
+	for (int x = 0; x < 800; x++) {
+		for (int y = 0; y < 800; y++)
 		{
-			int value = 0;
-			if (RastriOrRose)
-				value = rosenbrock(x, y);
-			else
-				value = rastrigin(x, y);
+			float value = func(min + stepSize * x , min + stepSize * y);
 
 			if (value < curmin)
 				curmin = value;
@@ -281,18 +280,14 @@ void Plot(int min, int max, bool RastriOrRose)
 				curmax = value;
 		}
 	}
-	std::cout << "Min: " << curmin << " MAX: " << curmax;
+	std::cout << "Min: " << curmin << " MAX: " << curmax << "\n";
 
 	//create heatmap
 	int i = 0;
-	for (int x = min; x < max; x++) {
-		for (int y = min; y < max; y++)
+	for (int x = 0; x < 800; x++) {
+		for (int y = 0; y < 800; y++)
 		{
-			int value = 0;
-			if (RastriOrRose)
-				value = rosenbrock(x, y);
-			else
-				value = rastrigin(x, y);
+			float value = func(min + stepSize * x, min + stepSize * y);
 
 			/*int HeatmapRange = 800;
 			int valuesRange = max - min;
@@ -312,8 +307,6 @@ void Plot(int min, int max, bool RastriOrRose)
 				r = 0;
 			g = 255 - b - r;
 			
-			if(y%50==0)
-				std::cout << "X:" << x << " Y:" << " Value:" << value << " R:" << r << " G:" << g << " B:" << b << std::endl;
 			pixels[i] = (int)r;
 			pixels[i + 1] = (int)g;
 			pixels[i + 2] = (int)b;
@@ -327,16 +320,25 @@ void Plot(int min, int max, bool RastriOrRose)
 	spriteHeatmap.setTexture(textureHeatmap);
 	window.draw(spriteHeatmap);
 
-
 	sf::RectangleShape rectangle{ { 10.f, 10.f } };
-	rectangle.setFillColor(sf::Color::White);
-	rectangle.setPosition({ 150.f, 20.f }); // set ga.best positions here
 
-	window.draw(rectangle);
+	auto drawDot = [&](Individual i, sf::Color color = sf::Color::White)
+	{
+		
+		rectangle.setFillColor(color);
+
+		float x = (i[0] - min) / stepSize;
+		float y = (i[1] - min) / stepSize;
+
+		rectangle.setPosition({ x, y });
+
+		window.draw(rectangle);
+	};
+
 	// NOTE:
 	// typedef std::vector<double> Individual;
 	// typedef std::vector<Individual> Population;
-	/*
+	
 	GeneticSearch ga(2, 50, 100); // Number of variables, number of generations, population size
 	ga.mutationRate = 0.2;
 	ga.lowerBound = min; // Lower and upper bound of variables in initial population generation and mutations
@@ -344,33 +346,46 @@ void Plot(int min, int max, bool RastriOrRose)
 	ga.elitism = 0.02;
 	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
-	ga.setFitnessFunction([](const Individual& i)
+	ga.setFitnessFunction([&](const Individual& i)
 		{
 			// The GA maximizes, add a negative here if we want to minimize
-			return -rosenbrock(i[0], i[1]);
+			return -func(i[0], i[1]);
 		});
 
 	// This function is not necessary, should do nothing, just usefull for intermediary updates, it gets called every time a new population is made.
-	ga.setUpdateCallback([](const Population& pop)
+	ga.setUpdateCallback([&](const Population& pop)
 		{
+			sf::Event event;
+			while (window.pollEvent(event))
+			{
+				// "close requested" event: we close the window
+				if (event.type == sf::Event::Closed)
+					window.close();
+			}
+
+			window.draw(spriteHeatmap);
+
 			double lowest = 999;
 			Individual best;
 			for (const auto& i : pop)
 			{
-				if (rosenbrock(i[0], i[1]) < lowest)
+				drawDot(i);
+				if (func(i[0], i[1]) < lowest)
 				{
-					lowest = rosenbrock(i[0], i[1]);
+					lowest = func(i[0], i[1]);
 					best = i;
 				}
 			}
-			std::cout << rosenbrock(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
+			drawDot(best, sf::Color::Red);
+			window.display();
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			std::cout << func(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
 		});
 
 	ga.run();
 
 	Individual best = ga.getBest();
-	std::cout << " FINAL:" << rosenbrock(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
-	std::cin.get();*/
+	std::cout << " FINAL:" << func(best[0], best[1]) << " at " << best[0] << "," << best[1] << "\n";
 
 	// run the program as long as the window is open
 	while (window.isOpen())
@@ -385,7 +400,8 @@ void Plot(int min, int max, bool RastriOrRose)
 		}
 
 		window.draw(spriteHeatmap);
-		window.draw(rectangle);
+
+		drawDot(best, sf::Color::Red);
 
 		window.display();
 	}
@@ -393,8 +409,8 @@ void Plot(int min, int max, bool RastriOrRose)
 
 int main()
 {
-	// min / max values for the functions, bool -> rosenbrock or rastrigin
-	Plot(0, 800, true);
+	//Plot(-2, 2, rosenbrock);
+	Plot(-2, 2, rastrigin);
 
 	return 0;
 
