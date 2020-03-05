@@ -4,6 +4,9 @@
 #include <thread>
 #include <SFML/Graphics.hpp>
 
+//Uncomment me to run single threaded (below cpp 17)
+#define PARALLEL
+
 #include "GeneticSearch.h"
 #include "Simulation.h"
 
@@ -200,10 +203,10 @@ int main()
 	//Plot(-2, 2, rastrigin);
 
 	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 50, 100); // Number of variables, number of generations, population size
-	GeneticSearch ga(96 + 8 + 16 + 2, 50, 100); // Number of variables, number of generations, population size
+	GeneticSearch ga(96 + 8 + 16 + 2, 1000, 100); // Number of variables, number of generations, population size
 	ga.mutationRate = 0.02;
-	ga.lowerBound = -1; // Lower and upper bound of variables in initial population generation and mutations
-	ga.upperBound = 1;
+	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
+	ga.upperBound = 2.5;
 	ga.elitism = 0.02;
 	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
 

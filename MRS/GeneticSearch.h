@@ -4,6 +4,8 @@
 #include <numeric>
 #include <functional>
 #include <random>
+#include <algorithm>
+#include <execution>
 
 typedef std::vector<float> Individual;
 typedef std::vector<Individual> Population;
@@ -108,13 +110,25 @@ public:
 private:
 	std::vector<double> getFitness(const Population& population)
 	{
+		std::vector<int> index;
 		std::vector<double> fitness;
 
+#ifdef PARALLEL
+		for (int i = 0; i < populationSize; i++)
+		{
+			index.push_back(i);
+			fitness.push_back(0);
+		}
+
+		std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int i) {
+			fitness[i] = fitnessFunction(population[i]);
+		});
+#else
 		for (const auto& individual : population)
 		{
 			fitness.push_back(fitnessFunction(individual));
 		}
-
+#endif
 		return fitness;
 	}
 
