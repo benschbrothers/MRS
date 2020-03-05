@@ -5,7 +5,7 @@
 #include <functional>
 #include <random>
 
-typedef std::vector<double> Individual;
+typedef std::vector<float> Individual;
 typedef std::vector<Individual> Population;
 
 std::vector<int> argSortDesc(const std::vector<double>& list)
@@ -62,6 +62,10 @@ public:
 			std::vector<int> fitnessOrder = argSortDesc(fitness);
 
 			best = population[fitnessOrder[0]];
+
+			float fitnessSum = 0;
+			for (auto f : fitness) fitnessSum += f;
+			std::cout << "Generation " << i << " has avg fitness " << fitnessSum / populationSize << " with best fitness " << fitness[fitnessOrder[0]] << "\n";
 
 			Population newPopulation;		
 			for (int j = 0; j < elitism * populationSize; j++)

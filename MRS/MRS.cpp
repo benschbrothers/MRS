@@ -3,222 +3,9 @@
 #include <chrono>
 #include <thread>
 #include <SFML/Graphics.hpp>
+
 #include "GeneticSearch.h"
-
-float * forwardKinematics(int vl, int vr, float xPos, float yPos, float t, float l);
-float * checkBorder(float vector[3]);
-float pi = 3.14159265358979323846;
-
-struct Point
-{
-	Point()
-	{
-		x = 0;
-		y = 0;
-	}
-
-	Point(float px, float py)
-	{
-		x = px;
-		y = py;
-	}
-
-	Point(const Point& p1, const Point& p2)
-	{
-		x = p2.x - p1.x;
-		y = p2.y - p1.y;
-	}
-
-	float x;
-	float y;
-
-	Point operator+(const Point& other){return Point(x + other.x, y + other.y);}
-	Point operator-(const Point& other){return Point(x - other.x, y - other.y);}
-	Point operator*(const float other) { return Point(x * other, y * other); }
-	Point operator/(const float other) { return Point(x / other, y / other); }
-
-	float getLenght() const
-	{
-		return sqrt(x * x + y * y);
-	}
-
-	Point getPerpendicular() const
-	{
-		return Point(y, -x);
-	}
-
-	float dot(const Point& other) const
-	{
-		return x * other.x + y * other.y;
-	}
-
-	float getAngle(const Point& other) const
-	{
-		return acos(this->dot(other) / (this->getLenght() * other.getLenght()));
-	}
-};
-
-struct Wall
-{
-	Wall(float px1, float py1, float px2, float py2)
-	{
-		x1 = px1;
-		y1 = py1;
-		x2 = px2;
-		y2 = py2;
-	}
-
-	float x1;
-	float y1;
-	float x2;
-	float y2;
-};
-
-struct Bot
-{
-public: 
-	float size;
-
-	Point pos;
-	float dir;
-
-	Point newPos;
-	float newDir;
-
-	bool printTurnPoint = false;
-	Point turnPoint;
-
-	float sensors[12];
-
-	void calcnewPosition(int vl, int vr)
-	{
-		float time = 0.01;
-
-		if (vl == vr)
-		{
-			newPos.x = pos.x + vl * cos(dir) * time;
-			newPos.y = pos.y + vl * sin(dir) * time;
-			newDir = dir;
-
-			printTurnPoint = false;
-		}
-		else if (vl == -vr || -vl == vr)
-		{
-			newPos.x = pos.x;
-			newPos.y = pos.y;
-			newDir = dir + (2 * vl * time) / size;
-
-			printTurnPoint = false;
-		}
-		else
-		{
-			float r, w;
-			if (vl == 0)
-			{
-				r = size / 2;
-				w = (vr - vl) / size;
-			}
-			else
-			{
-				r = (size / 2) * ((vl + vr) / (vr - vl));
-				w = (vr - vl) / size;
-			}
-
-			float iCCx = pos.x - (r * sin(dir));
-			float iCCy = pos.y + (r * cos(dir));
-
-			turnPoint.x = iCCx;
-			turnPoint.y = iCCy;
-
-			newPos.x = ((cos(w * time) * (pos.x - iCCx)) + (-sin(w * time) * (pos.y - iCCy))) + iCCx;
-			newPos.y = ((sin(w * time) * (pos.x - iCCx)) + (cos(w * time) * (pos.y - iCCy))) + iCCy;
-			newDir = dir + w * time;
-
-			printTurnPoint = true;
-		}
-	}
-};
-
-// source : https://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
-bool getLineIntersection(float p0_x, float p0_y, float p1_x, float p1_y,
-	float p2_x, float p2_y, float p3_x, float p3_y, float& i_x, float& i_y)
-{
-	float s1_x, s1_y, s2_x, s2_y;
-	s1_x = p1_x - p0_x;     s1_y = p1_y - p0_y;
-	s2_x = p3_x - p2_x;     s2_y = p3_y - p2_y;
-
-	float s, t;
-	s = (-s1_y * (p0_x - p2_x) + s1_x * (p0_y - p2_y)) / (-s2_x * s1_y + s1_x * s2_y);
-	t = (s2_x * (p0_y - p2_y) - s2_y * (p0_x - p2_x)) / (-s2_x * s1_y + s1_x * s2_y);
-
-	if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
-	{
-		// Collision detected
-		i_x = p0_x + (t * s1_x);
-		i_y = p0_y + (t * s1_y);
-		return true;
-	}
-
-	return false; // No collision
-}
-
-bool getLineIntersection(Point p1, Point p2, Point p3, Point p4, Point& i)
-{
-	return getLineIntersection(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, i.x, i.y);
-}
-
-float getLength(float x1, float y1, float x2, float y2)
-{
-	return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
-}
-
-float botWallHit(Point circle, float size, Point circleVel, Point p1, Point p2)
-{
-	Point lineDir = p2 - p1;
-	Point perpendicular = lineDir.getPerpendicular();
-	float angle = circleVel.getAngle(perpendicular);
-
-	float l = perpendicular.getLenght();
-	perpendicular = perpendicular * size / l;
-
-	if (pi / 2 < angle && angle < 3 * pi / 2)
-	{
-		perpendicular = perpendicular * -1;
-	}
-
-	Point velBig = circleVel * 100 / circleVel.getLenght();
-	Point firstHitOnEdge = circle + perpendicular;
-	Point moveTill = firstHitOnEdge + velBig;
-	Point intersection;
-
-	// hitting middle of the line
-	if (getLineIntersection(p1, p2, firstHitOnEdge, moveTill, intersection))
-	{
-		return (firstHitOnEdge - intersection).getLenght();
-	}
-
-	return 1000;
-}
-
-float botPointHit(Point circle, float size, Point circleVel, Point p1, Point& hitDir)
-{
-	Point velUnit = circleVel / circleVel.getLenght();
-	Point velPerpendicular = velUnit.getPerpendicular();
-
-	Point intersection;
-	if (getLineIntersection(circle + (velPerpendicular * size), circle - (velPerpendicular * size), p1, p1 - (velUnit * 100), intersection))
-	{
-		float x = Point(circle, intersection).getLenght() / size;
-		float y = std::sqrt(1 - x*x) * size;
-
-		Point firstHit = intersection + velUnit * y;
-		hitDir = Point(circle, firstHit);
-
-		return Point(firstHit, p1).getLenght();
-	}
-
-	return 1000;
-}
+#include "Simulation.h"
 
 float rosenbrock(float xi, float yi)
 {
@@ -410,7 +197,49 @@ void Plot(double min, double max, std::function<float(float,float)> func)
 int main()
 {
 	//Plot(-2, 2, rosenbrock);
-	Plot(-2, 2, rastrigin);
+	//Plot(-2, 2, rastrigin);
+
+	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 50, 100); // Number of variables, number of generations, population size
+	GeneticSearch ga(96 + 8 + 16 + 2, 50, 100); // Number of variables, number of generations, population size
+	ga.mutationRate = 0.02;
+	ga.lowerBound = -1; // Lower and upper bound of variables in initial population generation and mutations
+	ga.upperBound = 1;
+	ga.elitism = 0.02;
+	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
+
+	ga.setFitnessFunction([](const Individual& i)
+	{
+		Simulation sim(800, 400, 100, 100);
+
+		sim.bot.pos.x = 500;
+		sim.bot.pos.y = 300;
+		sim.bot.dir = 0;
+		sim.bot.size = 20;
+
+		sim.walls.emplace_back(50, 50, 800, 50);
+		sim.walls.emplace_back(50, 50, 50, 400);
+		sim.walls.emplace_back(50, 400, 800, 400);
+		sim.walls.emplace_back(800, 50, 800, 400);
+		sim.walls.emplace_back(600, 300, 800, 400);
+		sim.walls.emplace_back(100, 100, 200, 300);
+		sim.walls.emplace_back(200, 300, 300, 350);
+
+		//std::vector<int> layers = { 10, 4, 2 };
+		std::vector<int> layers = { 8, 2 };
+		auto nn = std::make_shared<NeuralNet>(i, 12, layers);
+
+		sim.autoPilot(nn, 60 * 30);
+
+		return sim.getAreaSweeped();
+	});
+
+	// This function is not necessary, should do nothing, just usefull for intermediary updates, it gets called every time a new population is made.
+	/*ga.setUpdateCallback([&](const Population& pop)
+	{
+
+	});*/
+
+	ga.run();
 
 	return 0;
 
@@ -516,32 +345,30 @@ int main()
 	menuVrTextSpeed.setFillColor(sf::Color::Blue);
 	menuVrTextSpeed.setPosition(1060, 630);
 
-	std::vector<Wall> walls;
-	walls.emplace_back(50,50,800,50);
-	walls.emplace_back(50, 50, 50, 400);
-	walls.emplace_back(50, 400, 800, 400);
-	walls.emplace_back(800, 50, 800, 400);
-	walls.emplace_back(600, 300, 800, 400);
+	Simulation sim(800, 400, 100, 100);
 
-	walls.emplace_back(100, 100, 200, 300);
-	walls.emplace_back(200, 300, 300, 350);
+	sim.bot.pos.x = 500;
+	sim.bot.pos.y = 300;
+	sim.bot.dir = 0;
+	sim.bot.size = 20;
 
-	Bot bot;
-	bot.pos.x = 500;
-	bot.pos.y = 300;
-	bot.dir = 0;
-	bot.size = 20;
+	sim.walls.emplace_back(50, 50, 800, 50);
+	sim.walls.emplace_back(50, 50, 50, 400);
+	sim.walls.emplace_back(50, 400, 800, 400);
+	sim.walls.emplace_back(800, 50, 800, 400);
+	sim.walls.emplace_back(600, 300, 800, 400);
+	sim.walls.emplace_back(100, 100, 200, 300);
+	sim.walls.emplace_back(200, 300, 300, 350);
 
-	//INIT Robot
 	int vl, vr;		
 	vl = vr = 0;
 
-	sf::CircleShape robot(bot.size);
+	sf::CircleShape robot(sim.bot.size);
 	robot.setFillColor(sf::Color::Green);
 
-	sf::RectangleShape robotLine(sf::Vector2f(bot.size, 2));
+	sf::RectangleShape robotLine(sf::Vector2f(sim.bot.size, 2));
 	robotLine.setFillColor(sf::Color::Red);
-	robotLine.setPosition(bot.size, bot.size);
+	robotLine.setPosition(sim.bot.size, sim.bot.size);
 
 	sf::RectangleShape icc(sf::Vector2f(3, 3));
 	icc.setFillColor(sf::Color::Red);
@@ -603,106 +430,13 @@ int main()
 		menuVl.setSize(sf::Vector2f(50 + vl * 5, 50));
 		menuVr.setSize(sf::Vector2f(50 + vr * 5, 50));
 
-		bot.calcnewPosition(vl, vr);
+		sim.step(vl, vr, 1);
 
-		Point vel = bot.newPos - bot.pos;
-		float speed = vel.getLenght();
-		int maxTries = 2;
-
-		while(maxTries > 0)
-		{
-			maxTries--; 
-
-			bool hitType = 0;
-			float maxMovement = 2000;
-			Point hitDir;
-			int wallIndex;
-			for (int i = 0; i < walls.size(); i++)
-			{
-				float distance = botWallHit(bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), Point(walls[i].x2, walls[i].y2));
-				if (distance < maxMovement)
-				{
-					hitType = 0;
-					maxMovement = distance;
-					wallIndex = i;
-				}
-
-				Point localhitDir;
-				distance = botPointHit(bot.pos, bot.size, vel, Point(walls[i].x1, walls[i].y1), localhitDir);
-				if (distance < maxMovement)
-				{
-					hitDir = localhitDir;
-					hitType = 1;
-					maxMovement = distance;
-					wallIndex = i;
-				}
-
-				distance = botPointHit(bot.pos, bot.size, vel, Point(walls[i].x2, walls[i].y2), localhitDir);
-				if (distance < maxMovement)
-				{
-					hitDir = localhitDir;
-					hitType = 2;
-					maxMovement = distance;
-					wallIndex = i;
-				}
-			}
-
-			maxMovement -= 1;
-			if (maxMovement <= 0)
-			{
-				maxMovement = 0;
-			}
-
-			if (maxMovement < speed)
-			{
-				bot.pos = bot.pos + (vel * maxMovement / speed);
-				vel = vel - (vel * maxMovement / speed);
-
-				if (hitType == 0)
-				{
-					// project speed
-					Point line(Point(walls[wallIndex].x1, walls[wallIndex].y1), Point(walls[wallIndex].x2, walls[wallIndex].y2));
-					float lineLenght = line.getLenght();
-					float comp = vel.dot(line) / (lineLenght * lineLenght);
-					vel = line * comp;
-
-					speed = vel.getLenght();
-					maxMovement = speed;
-				}
-				else if (hitType == 1 || hitType == 2)
-				{
-					Point hitPerpendicular = hitDir.getPerpendicular() / hitDir.getLenght();
-
-					// project speed
-					float comp = vel.dot(hitPerpendicular);
-					vel = hitPerpendicular * comp;
-
-					speed = vel.getLenght();
-					maxMovement = speed;
-				}
-				else
-				{
-					break;
-				}
-
-				if (speed <= 0)
-				{
-					break;
-				}
-			}
-			else
-			{
-				bot.pos = bot.pos + vel;
-				break;
-			}
-		}
-		bot.dir = bot.newDir;
-
-		robot.setPosition(bot.pos.x - bot.size, bot.pos.y - bot.size);
-		robotLine.setRotation(bot.dir * (180 / pi));
-		robotLine.setPosition(bot.pos.x, bot.pos.y);
-		menuRobotCircleLine.setRotation(bot.dir * (180 / pi));
-		icc.setPosition(bot.turnPoint.x, bot.turnPoint.y);
+		robot.setPosition(sim.bot.pos.x - sim.bot.size, sim.bot.pos.y - sim.bot.size);
+		robotLine.setRotation(sim.bot.dir * (180 / pi));
+		robotLine.setPosition(sim.bot.pos.x, sim.bot.pos.y);
+		menuRobotCircleLine.setRotation(sim.bot.dir * (180 / pi));
+		icc.setPosition(sim.bot.turnPoint.x, sim.bot.turnPoint.y);
 	
 		//textPosXY.setString("Position X:" + std::to_string((int)xPos) + " Y:" + std::to_string((int)yPos));
 		//menuTextRotation.setString(" Theta:" + std::to_string((int)rotation) + "°");
@@ -715,7 +449,7 @@ int main()
 
 		window.draw(robot);
 		window.draw(robotLine);
-		if(bot.printTurnPoint) window.draw(icc);
+		if(sim.bot.printTurnPoint) window.draw(icc);
 		window.draw(textPosXY);
 		window.draw(menuRobotCircle);
 		window.draw(menuRobotCircleLine);
@@ -733,7 +467,7 @@ int main()
 		window.draw(menuVrTextSpeed);
 		window.draw(menuVlTextSpeed);
 
-		for (const auto& wall : walls)
+		for (const auto& wall : sim.walls)
 		{
 			sf::VertexArray line(sf::Lines, 2);
 			line[0].position = sf::Vector2f(wall.x1, wall.y1);
@@ -745,18 +479,18 @@ int main()
 
 		for (int i = 0; i < 12; i++)
 		{
-			float xDir = cos(bot.dir + (i * 2 * pi / 12.0));
-			float yDir = sin(bot.dir + (i * 2 * pi / 12.0));
+			float xDir = cos(sim.bot.dir + (i * 2 * pi / 12.0));
+			float yDir = sin(sim.bot.dir + (i * 2 * pi / 12.0));
 
 			float length = 200;
 
-			for (const auto& wall : walls)
+			for (const auto& wall : sim.walls)
 			{
 				float px;
 				float py;
-				if (getLineIntersection(bot.pos.x, bot.pos.y, bot.pos.x + xDir * length, bot.pos.y + yDir * length, wall.x1, wall.y1, wall.x2, wall.y2, px, py))
+				if (getLineIntersection(sim.bot.pos.x, sim.bot.pos.y, sim.bot.pos.x + xDir * length, sim.bot.pos.y + yDir * length, wall.x1, wall.y1, wall.x2, wall.y2, px, py))
 				{
-					float newLength = getLength(bot.pos.x, bot.pos.y, px, py);
+					float newLength = getLength(sim.bot.pos.x, sim.bot.pos.y, px, py);
 					if (newLength < length)
 					{
 						length = newLength;
@@ -764,7 +498,7 @@ int main()
 				}
 			}
 			
-			bot.sensors[i] = length;
+			//bot.sensors.setElement(i, 0, length);
 
 			/*sf::Text sensorData;
 			sensorData.setFont(fontBold);

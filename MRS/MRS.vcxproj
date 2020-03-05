@@ -157,10 +157,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="MRS.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GeneticSearch.h" />
+    <ClInclude Include="Matrix.h" />
+    <ClInclude Include="Simulation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
