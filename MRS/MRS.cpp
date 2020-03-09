@@ -203,9 +203,9 @@ int main()
 	//Plot(-2, 2, rastrigin);
 
 	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 500, 50); // Number of variables, number of generations, population size
-	GeneticSearch ga(64 + 4 + 8 + 2, 500, 50); // Number of variables, number of generations, population size
+	GeneticSearch ga(64 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(24 + 2, 500, 50); // Number of variables, number of generations, population size
-	ga.mutationRate = 0.1;
+	ga.mutationRate = 0.05;
 	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
 	ga.upperBound = 2.5;
 	ga.elitism = 0.05;
@@ -233,7 +233,7 @@ int main()
 		//std::vector<int> layers = { 2 };
 		auto nn = std::make_shared<NeuralNet>(i, 16, layers);
 
-		sim.autoPilot(nn, 10000);
+		sim.autoPilot(nn, 25000);
 
 		return sim.getAreaSweeped();
 	});
@@ -386,13 +386,17 @@ int main()
 	icc.setFillColor(sf::Color::Red);
 	icc.setPosition(0, 0);
 
+	sf::RectangleShape dust(sf::Vector2f(2, 2));
+	dust.setFillColor(sf::Color::Blue);
+	dust.setPosition(0, 0);
+
 	std::vector<int> layers = { 4, 2 };
 	//std::vector<int> layers = { 2 };
 	auto nn = std::make_shared<NeuralNet>(ga.getBest(), 16, layers);
 
 	while (window.isOpen())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(5));
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -451,6 +455,18 @@ int main()
 		//sim.step(vl, vr, 1);
 
 		sim.autoPilot(nn, 1);
+
+		for (int i = 0; i < sim.floor.getAmountOfRows(); i++)
+		{
+			for (int j = 0; j < sim.floor.getAmountOfCollumns(); j++)
+			{
+				if (sim.floor.getElement(i, j) < 0.5)
+				{
+					dust.setPosition(i * sim.xSize / sim.xSteps, j * sim.ySize / sim.ySteps);
+					window.draw(dust);
+				}
+			}
+		}
 
 		robot.setPosition(sim.bot.pos.x - sim.bot.size, sim.bot.pos.y - sim.bot.size);
 		robotLine.setRotation(sim.bot.dir * (180 / pi));

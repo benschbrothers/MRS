@@ -268,7 +268,7 @@ public:
 	}
 	void calcnewPosition()
 	{
-		float time = 0.05;
+		float time = 0.1;
 
 		if (vl == vr)
 		{
