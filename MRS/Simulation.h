@@ -195,7 +195,10 @@ public:
 
 	Matrix forward(const Matrix& input)
 	{
-		Matrix layer = input.getHorizontalStitch(state);
+		Matrix scaled = input * -0.05f;
+		scaled.putExp();
+
+		Matrix layer = scaled.getHorizontalStitch(state);
 
 		for (int i = 0; i < layers.size(); i++)
 		{
@@ -260,7 +263,7 @@ public:
 				}
 			}
 
-			sensors.setElement(0, i, length);
+			sensors.setElement(0, i, length < 120 ? length : 120);
 		}
 	}
 	void calcnewPosition()

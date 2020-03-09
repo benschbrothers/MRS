@@ -45,6 +45,7 @@ public:
 	void putSigmoidPrime();
 	Matrix getTanh()const;
 	void putTanh();
+	void putExp();
 
 	float sumElements()const;
 	void putSquare();

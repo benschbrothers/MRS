@@ -386,6 +386,10 @@ int main()
 	icc.setFillColor(sf::Color::Red);
 	icc.setPosition(0, 0);
 
+	std::vector<int> layers = { 4, 2 };
+	//std::vector<int> layers = { 2 };
+	auto nn = std::make_shared<NeuralNet>(ga.getBest(), 16, layers);
+
 	while (window.isOpen())
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
@@ -446,9 +450,6 @@ int main()
 
 		//sim.step(vl, vr, 1);
 
-		std::vector<int> layers = { 4, 2 };
-		//std::vector<int> layers = { 2 };
-		auto nn = std::make_shared<NeuralNet>(ga.getBest(), 16, layers);
 		sim.autoPilot(nn, 1);
 
 		robot.setPosition(sim.bot.pos.x - sim.bot.size, sim.bot.pos.y - sim.bot.size);

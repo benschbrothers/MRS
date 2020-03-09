@@ -418,6 +418,17 @@ void Matrix::putTanh()
 	}
 }
 
+void Matrix::putExp()
+{
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			p[i * cols + j] = std::exp(p[i * cols + j]);
+		}
+	}
+}
+
 float Matrix::sumElements() const
 {
 	float total = 0;
