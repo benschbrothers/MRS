@@ -465,10 +465,28 @@ public:
 
 	void updateFloor(float x, float y)
 	{
-		int i = x * xSteps / xSize;
-		int j = y * ySteps / ySize;
+		int ix = x * xSteps / xSize;
+		int iy = y * ySteps / ySize;
 
-		floor.setElement(i, j, 1);
+		for (int i = -4; i <= 4; i++)
+		{
+			for (int j = -4; j <= 4; j++)
+			{
+				if (ix + i >= 0 && ix + i < xSize)
+				{
+					if (iy + j >= 0 && iy + j < ySize)
+					{
+						float dx = x - ((ix + i) * xSize / xSteps);
+						float dy = y - ((iy + j) * ySize / ySteps);
+
+						if (dx * dx + dy * dy <= bot.size * bot.size)
+						{
+							floor.setElement(ix + i, iy + j, 1);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	int getAreaSweeped()

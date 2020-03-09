@@ -213,10 +213,15 @@ int main()
 
 	ga.setFitnessFunction([](const Individual& i)
 	{
+		static std::random_device rd;
+		static std::mt19937 gen(rd());
+		static std::uniform_real_distribution<double> uniformx(100, 750);
+		static std::uniform_real_distribution<double> uniformy(100, 350);
+
 		Simulation sim(800, 400, 100, 100);
 
-		sim.bot.pos.x = 500;
-		sim.bot.pos.y = 300;
+		sim.bot.pos.x = uniformx(gen);
+		sim.bot.pos.y = uniformy(gen);
 		sim.bot.dir = 0;
 		sim.bot.size = 20;
 
