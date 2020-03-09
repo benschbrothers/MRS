@@ -189,16 +189,23 @@ public:
 		{
 			throw std::runtime_error("Unkown error");
 		}
+
+		state.set(0);
 	}
 
 	Matrix forward(const Matrix& input)
 	{
-		Matrix layer(input);
+		Matrix layer = input.getHorizontalStitch(state);
 
 		for (int i = 0; i < layers.size(); i++)
 		{
 			layer = layer * layers[i] + biases[i];
 			layer.putSigmoid();
+
+			if (i == layers.size() - 2)
+			{
+				state = layer;
+			}
 		}
 
 		return layer;
@@ -207,6 +214,7 @@ public:
 private:
 	std::vector<Matrix> layers;
 	std::vector<Matrix> biases;
+	Matrix state = Matrix(1, 4);
 };
 
 struct Bot

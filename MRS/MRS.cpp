@@ -202,13 +202,14 @@ int main()
 	//Plot(-2, 2, rosenbrock);
 	//Plot(-2, 2, rastrigin);
 
-	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 50, 100); // Number of variables, number of generations, population size
-	GeneticSearch ga(96 + 8 + 16 + 2, 30, 100); // Number of variables, number of generations, population size
-	ga.mutationRate = 0.02;
+	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 500, 50); // Number of variables, number of generations, population size
+	GeneticSearch ga(64 + 4 + 8 + 2, 500, 50); // Number of variables, number of generations, population size
+	//GeneticSearch ga(24 + 2, 500, 50); // Number of variables, number of generations, population size
+	ga.mutationRate = 0.1;
 	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
 	ga.upperBound = 2.5;
-	ga.elitism = 0.02;
-	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
+	ga.elitism = 0.05;
+	ga.top = 0.10; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
 	ga.setFitnessFunction([](const Individual& i)
 	{
@@ -228,8 +229,9 @@ int main()
 		sim.walls.emplace_back(200, 300, 300, 350);
 
 		//std::vector<int> layers = { 10, 4, 2 };
-		std::vector<int> layers = { 8, 2 };
-		auto nn = std::make_shared<NeuralNet>(i, 12, layers);
+		std::vector<int> layers = { 4, 2 };
+		//std::vector<int> layers = { 2 };
+		auto nn = std::make_shared<NeuralNet>(i, 16, layers);
 
 		sim.autoPilot(nn, 10000);
 
@@ -244,7 +246,8 @@ int main()
 
 	ga.run();
 
-	std::cout << "Starting visualization of best individual\n";
+	std::cout << "Starting visualization of best individual, wait on user input.\n";
+	std::cin.get();
 
 	// INIT Fonts
 	sf::RenderWindow window(sf::VideoMode(1280, 720), "Mobile Robot Simulator: Group 3");
@@ -385,7 +388,7 @@ int main()
 
 	while (window.isOpen())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
 		sf::Event event;
 		while (window.pollEvent(event))
@@ -443,8 +446,9 @@ int main()
 
 		//sim.step(vl, vr, 1);
 
-		std::vector<int> layers = { 8, 2 };
-		auto nn = std::make_shared<NeuralNet>(ga.getBest(), 12, layers);
+		std::vector<int> layers = { 4, 2 };
+		//std::vector<int> layers = { 2 };
+		auto nn = std::make_shared<NeuralNet>(ga.getBest(), 16, layers);
 		sim.autoPilot(nn, 1);
 
 		robot.setPosition(sim.bot.pos.x - sim.bot.size, sim.bot.pos.y - sim.bot.size);
