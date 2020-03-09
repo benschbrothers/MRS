@@ -467,6 +467,27 @@ public:
 			walls.emplace_back(800, 0, 800, 400);
 
 		}
+		else if (i == 4)
+		{
+			walls.emplace_back(0, 0, 800, 0);
+			walls.emplace_back(0, 0, 0, 400);
+			walls.emplace_back(0, 400, 800, 400);
+			walls.emplace_back(800, 0, 800, 400);
+
+			walls.emplace_back(100, 100, 700, 300);
+
+		}
+		else if (i == 5)
+		{
+			walls.emplace_back(0, 0, 800, 0);
+			walls.emplace_back(0, 0, 0, 400);
+			walls.emplace_back(0, 400, 800, 400);
+			walls.emplace_back(800, 0, 800, 400);
+
+			walls.emplace_back(100,100,700,100);
+			walls.emplace_back(100,200,700,200);
+			walls.emplace_back(100,300,700,300);
+		}
 		else
 		{
 			throw std::runtime_error("Unknown world");

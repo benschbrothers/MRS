@@ -202,14 +202,14 @@ int main()
 	//Plot(-2, 2, rosenbrock);
 	//Plot(-2, 2, rastrigin);
 
-	GeneticSearch ga(128 + 8 + 32 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
+	GeneticSearch ga(128 + 8 + 32 + 4 + 8 + 2, 200, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(64 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(24 + 2, 500, 50); // Number of variables, number of generations, population size
 	ga.mutationRate = 0.02;
 	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
 	ga.upperBound = 2.5;
 	ga.elitism = 0.05;
-	ga.top = 0.10; // Only top 25% are used as parents, future version could be upgraded to other selection method
+	ga.top = 0.20; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
 	ga.setFitnessFunction([](const Individual& individual)
 	{
@@ -220,7 +220,7 @@ int main()
 
 		int min = 10000;
 
-		for (int i = 0; i <= 3; i++)
+		for (int i = 0; i <= 5; i++)
 		{
 
 			Simulation sim(800, 400, 100, 100);
@@ -237,7 +237,7 @@ int main()
 			//std::vector<int> layers = { 2 };
 			auto nn = std::make_shared<NeuralNet>(individual, 16, layers);
 
-			sim.autoPilot(nn, 5000);
+			sim.autoPilot(nn, 10000);
 
 			int s = sim.getAreaSweeped();
 
@@ -373,7 +373,7 @@ int main()
 	sim.bot.dir = 0;
 	sim.bot.size = 20;
 
-	sim.loadWord(2);
+	sim.loadWord(5);
 
 	int vl, vr;		
 	vl = vr = 0;
@@ -400,8 +400,6 @@ int main()
 
 	while (window.isOpen())
 	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
 		sf::Event event;
 		while (window.pollEvent(event))
 		{

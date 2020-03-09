@@ -137,11 +137,14 @@ private:
 		static std::random_device rd;
 		static std::mt19937 gen(rd());
 		static std::bernoulli_distribution bernoulli(0.5);
+		static std::uniform_int_distribution<int> uniform(0, parameters);
 
 		Individual child;
+		int cutoff = uniform(gen);
 		for (int i = 0; i < parameters; i++)
 		{
-			if (bernoulli(gen))
+			//if (bernoulli(gen))
+			if(i < cutoff)
 			{
 				child.push_back(p1[i]);
 			}
