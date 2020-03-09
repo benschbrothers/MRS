@@ -197,6 +197,7 @@ public:
 	{
 		Matrix scaled = input * -0.05f;
 		scaled.putExp();
+		scaled = -scaled + 1.0f;
 
 		Matrix layer = scaled.getHorizontalStitch(state);
 
@@ -446,6 +447,25 @@ public:
 			
 			walls.emplace_back(200, 0, 200, 200);
 			walls.emplace_back(200, 200, 600, 200);
+		}
+		else if (i == 2)
+		{
+			walls.emplace_back(0, 0, 800, 0);
+			walls.emplace_back(0, 0, 0, 400);
+			walls.emplace_back(0, 400, 800, 400);
+			walls.emplace_back(800, 0, 800, 400);
+
+			walls.emplace_back(200, 0, 200, 300);
+			walls.emplace_back(400, 100, 400, 400);
+			walls.emplace_back(600, 0, 600, 300);
+		}
+		else if (i == 3)
+		{
+			walls.emplace_back(0, 0, 800, 0);
+			walls.emplace_back(0, 0, 0, 400);
+			walls.emplace_back(0, 400, 800, 400);
+			walls.emplace_back(800, 0, 800, 400);
+
 		}
 		else
 		{

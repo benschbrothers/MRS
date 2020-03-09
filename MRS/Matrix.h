@@ -27,6 +27,7 @@ public:
 	Matrix operator=(const Matrix& eq);
 
 	Matrix operator+(const Matrix& m2)const;
+	Matrix operator+(float e)const;
 	Matrix operator-(const Matrix& m2)const;
 	Matrix operator-();
 	void putSum(const Matrix& m2);

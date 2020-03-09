@@ -178,6 +178,20 @@ Matrix Matrix::operator+(const Matrix& m2)const
 	return T;
 }
 
+Matrix Matrix::operator+(float e) const
+{
+	Matrix T(rows, cols);
+	for (int i = 0; i < rows; i++)
+	{
+		for (int j = 0; j < cols; j++)
+		{
+			T.p[i * cols + j] = p[i * cols + j] + e;
+		}
+	}
+
+	return T;
+}
+
 Matrix Matrix::operator-(const Matrix& m2)const
 {
 	Matrix T(rows, cols);

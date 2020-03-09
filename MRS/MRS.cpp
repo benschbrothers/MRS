@@ -211,30 +211,40 @@ int main()
 	ga.elitism = 0.05;
 	ga.top = 0.10; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
-	ga.setFitnessFunction([](const Individual& i)
+	ga.setFitnessFunction([](const Individual& individual)
 	{
 		static std::random_device rd;
 		static std::mt19937 gen(rd());
 		static std::uniform_real_distribution<double> uniformx(100, 750);
 		static std::uniform_real_distribution<double> uniformy(100, 350);
 
-		Simulation sim(800, 400, 100, 100);
+		int min = 10000;
 
-		sim.bot.pos.x = uniformx(gen);
-		sim.bot.pos.y = uniformy(gen);
-		sim.bot.dir = 0;
-		sim.bot.size = 20;
+		for (int i = 0; i <= 3; i++)
+		{
 
-		sim.loadWord(1);
+			Simulation sim(800, 400, 100, 100);
 
-		std::vector<int> layers = { 8, 4, 2 };
-		//std::vector<int> layers = { 4, 2 };
-		//std::vector<int> layers = { 2 };
-		auto nn = std::make_shared<NeuralNet>(i, 16, layers);
+			sim.bot.pos.x = uniformx(gen);
+			sim.bot.pos.y = uniformy(gen);
+			sim.bot.dir = 0;
+			sim.bot.size = 20;
 
-		sim.autoPilot(nn, 20000);
+			sim.loadWord(i);
 
-		return sim.getAreaSweeped();
+			std::vector<int> layers = { 8, 4, 2 };
+			//std::vector<int> layers = { 4, 2 };
+			//std::vector<int> layers = { 2 };
+			auto nn = std::make_shared<NeuralNet>(individual, 16, layers);
+
+			sim.autoPilot(nn, 5000);
+
+			int s = sim.getAreaSweeped();
+
+			min = std::min(min, s);
+		}
+
+		return min;
 	});
 
 	// This function is not necessary, should do nothing, just usefull for intermediary updates, it gets called every time a new population is made.
@@ -363,7 +373,7 @@ int main()
 	sim.bot.dir = 0;
 	sim.bot.size = 20;
 
-	sim.loadWord(1);
+	sim.loadWord(2);
 
 	int vl, vr;		
 	vl = vr = 0;
