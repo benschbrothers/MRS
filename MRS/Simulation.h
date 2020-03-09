@@ -257,7 +257,7 @@ public:
 	}
 	void calcnewPosition()
 	{
-		float time = 0.01;
+		float time = 0.05;
 
 		if (vl == vr)
 		{
@@ -428,6 +428,8 @@ public:
 
 			updateFloor(bot.pos.x, bot.pos.y);
 		}
+
+		stepsDone += steps;
 	}
 
 	void autoPilot(std::shared_ptr<NeuralNet> nn, int steps = 1)
@@ -446,6 +448,8 @@ public:
 
 			updateFloor(bot.pos.x, bot.pos.y);
 		}
+
+		stepsDone += steps;
 	}
 
 	void updateFloor(float x, float y)
@@ -470,4 +474,6 @@ public:
 
 	Bot bot;
 	std::vector<Wall> walls;
+
+	int stepsDone = 0;
 };

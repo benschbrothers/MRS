@@ -203,7 +203,7 @@ int main()
 	//Plot(-2, 2, rastrigin);
 
 	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 50, 100); // Number of variables, number of generations, population size
-	GeneticSearch ga(96 + 8 + 16 + 2, 1000, 100); // Number of variables, number of generations, population size
+	GeneticSearch ga(96 + 8 + 16 + 2, 30, 100); // Number of variables, number of generations, population size
 	ga.mutationRate = 0.02;
 	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
 	ga.upperBound = 2.5;
@@ -231,7 +231,7 @@ int main()
 		std::vector<int> layers = { 8, 2 };
 		auto nn = std::make_shared<NeuralNet>(i, 12, layers);
 
-		sim.autoPilot(nn, 60 * 30);
+		sim.autoPilot(nn, 10000);
 
 		return sim.getAreaSweeped();
 	});
@@ -244,7 +244,7 @@ int main()
 
 	ga.run();
 
-	return 0;
+	std::cout << "Starting visualization of best individual\n";
 
 	// INIT Fonts
 	sf::RenderWindow window(sf::VideoMode(1280, 720), "Mobile Robot Simulator: Group 3");
@@ -348,6 +348,12 @@ int main()
 	menuVrTextSpeed.setFillColor(sf::Color::Blue);
 	menuVrTextSpeed.setPosition(1060, 630);
 
+	sf::Text textStatus;
+	textStatus.setFont(fontBold);
+	textStatus.setCharacterSize(18);
+	textStatus.setFillColor(sf::Color::Blue);
+	textStatus.setPosition(20, 20);
+
 	Simulation sim(800, 400, 100, 100);
 
 	sim.bot.pos.x = 500;
@@ -379,6 +385,8 @@ int main()
 
 	while (window.isOpen())
 	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -433,7 +441,11 @@ int main()
 		menuVl.setSize(sf::Vector2f(50 + vl * 5, 50));
 		menuVr.setSize(sf::Vector2f(50 + vr * 5, 50));
 
-		sim.step(vl, vr, 1);
+		//sim.step(vl, vr, 1);
+
+		std::vector<int> layers = { 8, 2 };
+		auto nn = std::make_shared<NeuralNet>(ga.getBest(), 12, layers);
+		sim.autoPilot(nn, 1);
 
 		robot.setPosition(sim.bot.pos.x - sim.bot.size, sim.bot.pos.y - sim.bot.size);
 		robotLine.setRotation(sim.bot.dir * (180 / pi));
@@ -449,6 +461,7 @@ int main()
 		menuVlText.setString("Vr");
 		menuVrTextSpeed.setString(std::to_string(vr*10) + "%");
 		menuVlTextSpeed.setString(std::to_string(vl*10) + "%");
+		textStatus.setString("Steps: " + std::to_string(sim.stepsDone) + ", sweeped: " + std::to_string(sim.getAreaSweeped()) + ", vl=" + std::to_string(sim.bot.vl) + ", vr=" + std::to_string(sim.bot.vr));
 
 		window.draw(robot);
 		window.draw(robotLine);
@@ -469,6 +482,7 @@ int main()
 		window.draw(menuVlText);
 		window.draw(menuVrTextSpeed);
 		window.draw(menuVlTextSpeed);
+		window.draw(textStatus);
 
 		for (const auto& wall : sim.walls)
 		{
