@@ -136,7 +136,7 @@ void Plot(double min, double max, std::function<float(float,float)> func)
 	ga.elitism = 0.02;
 	ga.top = 0.25; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
-	ga.setFitnessFunction([&](const Individual& i)
+	ga.setFitnessFunction([&](const Individual& i, int generation, int individual)
 		{
 			// The GA maximizes, add a negative here if we want to minimize
 			return -func(i[0], i[1]);
@@ -202,7 +202,7 @@ int main()
 	//Plot(-2, 2, rosenbrock);
 	//Plot(-2, 2, rastrigin);
 
-	GeneticSearch ga(128 + 8 + 32 + 4 + 8 + 2, 200, 50); // Number of variables, number of generations, population size
+	GeneticSearch ga(128 + 8 + 32 + 4 + 8 + 2, 50, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(64 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(24 + 2, 500, 50); // Number of variables, number of generations, population size
 	ga.mutationRate = 0.02;
@@ -211,12 +211,21 @@ int main()
 	ga.elitism = 0.05;
 	ga.top = 0.20; // Only top 25% are used as parents, future version could be upgraded to other selection method
 
-	ga.setFitnessFunction([](const Individual& individual)
+	// Run generations
+	std::ofstream file;
+	file.open("log.csv");
+
+	std::vector<std::vector<std::vector<int>>> results;
+
+	ga.setFitnessFunction([&](const Individual& parameters, int generation, int individual)
 	{
 		static std::random_device rd;
 		static std::mt19937 gen(rd());
 		static std::uniform_real_distribution<double> uniformx(100, 750);
 		static std::uniform_real_distribution<double> uniformy(100, 350);
+
+		if (results.size() == generation) results.emplace_back();
+		results.back().emplace_back();
 
 		int min = 10000;
 
@@ -235,11 +244,13 @@ int main()
 			std::vector<int> layers = { 8, 4, 2 };
 			//std::vector<int> layers = { 4, 2 };
 			//std::vector<int> layers = { 2 };
-			auto nn = std::make_shared<NeuralNet>(individual, 16, layers);
+			auto nn = std::make_shared<NeuralNet>(parameters, 16, layers);
 
 			sim.autoPilot(nn, 10000);
 
 			int s = sim.getAreaSweeped();
+
+			results.back().back().emplace_back(s);
 
 			min = std::min(min, s);
 		}
@@ -254,6 +265,33 @@ int main()
 	});*/
 
 	ga.run();
+
+	file << "generation,avg0,max0,avg1,max1,avg2,max2,avg3,max3,avg4,max4,avg5,max5\n";
+
+	for (int i = 0; i < results.size(); i++)
+	{
+		auto r = results[i];
+		file << i;
+
+		for (int j = 0; j < 6; j++)
+		{
+			float sum = 0;
+			int max = 0;
+
+			for (int k = 0; k < r.size(); k++)
+			{
+				sum += r[k][j];
+				max = std::max(r[k][j], max);
+			}
+
+			file << "," << sum / r.size() << "," << max;
+		}
+
+		file << "\n";
+	}
+
+
+	file.close();
 
 	std::cout << "Starting visualization of best individual, wait on user input.\n";
 	std::cin.get();

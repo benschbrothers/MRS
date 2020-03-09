@@ -6,6 +6,7 @@
 #include <random>
 #include <algorithm>
 #include <execution>
+#include <fstream>
 
 typedef std::vector<float> Individual;
 typedef std::vector<Individual> Population;
@@ -30,7 +31,7 @@ public:
 		populationSize = pPopulationSize;
 	}
 
-	void setFitnessFunction(std::function<double(const Individual&)> pFitnessFunction)
+	void setFitnessFunction(std::function<double(const Individual&, int, int)> pFitnessFunction)
 	{
 		fitnessFunction = pFitnessFunction;
 	}
@@ -57,10 +58,9 @@ public:
 			updateCallback(population);
 		}
 
-		// Run generations
 		for (int i = 0; i < generations; i++)
 		{
-			std::vector<double> fitness = getFitness(population);
+			std::vector<double> fitness = getFitness(population, i);
 			std::vector<int> fitnessOrder = argSortDesc(fitness);
 
 			best = population[fitnessOrder[0]];
@@ -90,7 +90,7 @@ public:
 			}
 		}
 
-		std::vector<double> fitness = getFitness(population);
+		std::vector<double> fitness = getFitness(population, generations);
 		std::vector<int> fitnessOrder = argSortDesc(fitness);
 
 		best = population[fitnessOrder[0]];
@@ -108,7 +108,7 @@ public:
 	double top = 0.25;
 
 private:
-	std::vector<double> getFitness(const Population& population)
+	std::vector<double> getFitness(const Population& population, int gen)
 	{
 		std::vector<int> index;
 		std::vector<double> fitness;
@@ -120,8 +120,9 @@ private:
 			fitness.push_back(0);
 		}
 
-		std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int i) {
-			fitness[i] = fitnessFunction(population[i]);
+		//std::for_each(std::execution::par_unseq, index.begin(), index.end(), [&](int i) {
+		std::for_each(std::execution::seq, index.begin(), index.end(), [&](int i) {
+			fitness[i] = fitnessFunction(population[i], gen, i);
 		});
 #else
 		for (const auto& individual : population)
@@ -197,7 +198,7 @@ private:
 	int generations;
 	int populationSize;
 
-	std::function<double(const Individual&)> fitnessFunction;
+	std::function<double(const Individual&, int, int)> fitnessFunction;
 	std::function<void(const Population&)> updateCallback;
 
 	Individual best;
