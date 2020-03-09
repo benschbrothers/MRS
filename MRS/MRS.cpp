@@ -202,10 +202,10 @@ int main()
 	//Plot(-2, 2, rosenbrock);
 	//Plot(-2, 2, rastrigin);
 
-	//GeneticSearch ga(120 + 10 + 40 + 4 + 8 + 2, 500, 50); // Number of variables, number of generations, population size
-	GeneticSearch ga(64 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
+	GeneticSearch ga(128 + 8 + 32 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
+	//GeneticSearch ga(64 + 4 + 8 + 2, 100, 50); // Number of variables, number of generations, population size
 	//GeneticSearch ga(24 + 2, 500, 50); // Number of variables, number of generations, population size
-	ga.mutationRate = 0.05;
+	ga.mutationRate = 0.02;
 	ga.lowerBound = -2.5; // Lower and upper bound of variables in initial population generation and mutations
 	ga.upperBound = 2.5;
 	ga.elitism = 0.05;
@@ -225,20 +225,14 @@ int main()
 		sim.bot.dir = 0;
 		sim.bot.size = 20;
 
-		sim.walls.emplace_back(50, 50, 800, 50);
-		sim.walls.emplace_back(50, 50, 50, 400);
-		sim.walls.emplace_back(50, 400, 800, 400);
-		sim.walls.emplace_back(800, 50, 800, 400);
-		sim.walls.emplace_back(600, 300, 800, 400);
-		sim.walls.emplace_back(100, 100, 200, 300);
-		sim.walls.emplace_back(200, 300, 300, 350);
+		sim.loadWord(1);
 
-		//std::vector<int> layers = { 10, 4, 2 };
-		std::vector<int> layers = { 4, 2 };
+		std::vector<int> layers = { 8, 4, 2 };
+		//std::vector<int> layers = { 4, 2 };
 		//std::vector<int> layers = { 2 };
 		auto nn = std::make_shared<NeuralNet>(i, 16, layers);
 
-		sim.autoPilot(nn, 25000);
+		sim.autoPilot(nn, 20000);
 
 		return sim.getAreaSweeped();
 	});
@@ -369,13 +363,7 @@ int main()
 	sim.bot.dir = 0;
 	sim.bot.size = 20;
 
-	sim.walls.emplace_back(50, 50, 800, 50);
-	sim.walls.emplace_back(50, 50, 50, 400);
-	sim.walls.emplace_back(50, 400, 800, 400);
-	sim.walls.emplace_back(800, 50, 800, 400);
-	sim.walls.emplace_back(600, 300, 800, 400);
-	sim.walls.emplace_back(100, 100, 200, 300);
-	sim.walls.emplace_back(200, 300, 300, 350);
+	sim.loadWord(1);
 
 	int vl, vr;		
 	vl = vr = 0;
@@ -395,7 +383,8 @@ int main()
 	dust.setFillColor(sf::Color::Blue);
 	dust.setPosition(0, 0);
 
-	std::vector<int> layers = { 4, 2 };
+	std::vector<int> layers = { 8, 4, 2 };
+	//std::vector<int> layers = { 4, 2 };
 	//std::vector<int> layers = { 2 };
 	auto nn = std::make_shared<NeuralNet>(ga.getBest(), 16, layers);
 

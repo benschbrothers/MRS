@@ -424,6 +424,35 @@ public:
 		ySteps = pySteps;
 	}
 
+	void loadWord(int i)
+	{
+		if (i == 0)
+		{
+			walls.emplace_back(50, 50, 800, 50);
+			walls.emplace_back(50, 50, 50, 400);
+			walls.emplace_back(50, 400, 800, 400);
+			walls.emplace_back(800, 50, 800, 400);
+
+			walls.emplace_back(600, 300, 800, 400);
+			walls.emplace_back(100, 100, 200, 300);
+			walls.emplace_back(200, 300, 300, 350);
+		}
+		else if (i == 1)
+		{
+			walls.emplace_back(0, 0, 800, 0);
+			walls.emplace_back(0, 0, 0, 400);
+			walls.emplace_back(0, 400, 800, 400);
+			walls.emplace_back(800, 0, 800, 400);
+			
+			walls.emplace_back(200, 0, 200, 200);
+			walls.emplace_back(200, 200, 600, 200);
+		}
+		else
+		{
+			throw std::runtime_error("Unknown world");
+		}
+	}
+
 	void step(int vl, int vr, int steps = 1)
 	{
 		for (int i = 0; i < steps; i++)
